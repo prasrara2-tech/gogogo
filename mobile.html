@@ -1,0 +1,3367 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>GoChat Pro - Share & Groups</title>
+
+    <!-- LIBRARIES -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://meet.jit.si/external_api.js"></script>
+  
+    <style>
+    /* CSS VARIABLES & RESET */
+    :root {
+        --bg-base: #0a0a0a;
+        --glass-white: rgba(255,255,255, 0.04);
+        --glass-thick: rgba(15, 15, 15, 0.98);
+        --glass-border: rgba(255,255,255, 0.08);
+        --accent: #d4a373; 
+        --accent-bright: #e6b885; 
+        --text-main: #ffffff;
+        --text-muted: #a0a0a0;
+        --online: #2ecc71;
+        --seen-blue: #3498db;
+        --me-chat: linear-gradient(135deg, #d4a373 0%, #b88a5d 100%);
+        --you-chat: rgba(255, 255, 255, 0.08);
+        --safe-top: env(safe-area-inset-top);
+        --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    * { 
+        box-sizing: border-box; 
+        -webkit-tap-highlight-color: transparent; 
+        outline: none; 
+        user-select: none; 
+    }
+    
+    body { 
+        margin: 0; 
+        font-family: 'Inter', sans-serif; 
+        background: var(--bg-base); 
+        color: var(--text-main); 
+        height: 100dvh; 
+        overflow: hidden; 
+    }
+    
+    .app { 
+        display: flex; 
+        height: 100%; 
+        width: 100%; 
+        position: relative; 
+    }
+
+    /* SIDEBAR STYLES */
+    .sidebar { 
+        width: 30%; 
+        min-width: 320px; 
+        border-right:1px solid var(--glass-border); 
+        display: flex; 
+        flex-direction: column; 
+        transition: transform 0.3s ease;
+        z-index: 200; 
+        padding-top: var(--safe-top); 
+        background: var(--bg-base); 
+    }
+    
+    .side-header { 
+        padding: 20px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        border-bottom:1px solid var(--glass-border); 
+        position: relative; 
+        z-index: 10; 
+    }
+    
+    .my-avatar { 
+        width: 48px; 
+        height: 48px; 
+        border-radius: 16px; 
+        object-fit: cover; 
+        cursor: pointer; 
+        border: 2px solid var(--glass-border); 
+        transition: transform 0.2s;
+    }
+    .my-avatar:active { transform: scale(0.95); }
+    
+    .search-container { 
+        padding: 15px 20px; 
+    }
+    
+    .search-box { 
+        background: var(--glass-white); 
+        border-radius: 16px; 
+        padding: 12px 16px; 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        border: 1px solid var(--glass-border); 
+    }
+    
+    .search-box input { 
+        background: transparent; 
+        border: none; 
+        color: white; 
+        width: 100%; 
+        font-size: 14px; 
+        font-weight: 500;
+    }
+    
+    #users { 
+        flex: 1; 
+        overflow-y: auto; 
+        padding: 10px; 
+        scrollbar-width: none; 
+    }
+    #users::-webkit-scrollbar { width: 5px; }
+    #users::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+    
+    .user { 
+        padding: 12px 14px; 
+        border-radius: 18px; 
+        display: flex; 
+        align-items: center; 
+        gap: 14px; 
+        cursor: pointer; 
+        margin-bottom: 6px; 
+        transition: background 0.2s; 
+        position: relative; 
+        animation: slideIn 0.2s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-10px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    .user:hover { 
+        background: var(--glass-white); 
+    }
+    
+    .avatar-wrapper {
+        position: relative;
+        width: 54px; 
+        height: 54px; 
+        flex-shrink: 0;
+    }
+    
+    .user img { 
+        width: 100%; 
+        height: 100%; 
+        border-radius: 16px; 
+        object-fit: cover; 
+        pointer-events: none;
+    }
+
+           /* CSS BADGE PERBAIKAN TOTAL */
+    .user-badge {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        
+        /* Warna Tegas */
+        background-color: #d4a373 !important; 
+        color: #000 !important;
+        
+        font-size: 10px !important;
+        font-weight: 700;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px; /* Padding kiri kanan */
+        border-radius: 8px;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .status-dot {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 13px;
+        height: 13px;
+        background: var(--online);
+        border-radius: 50%;
+        border: 2px solid var(--bg-base);
+        z-index: 2;
+        display: none; 
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    /* SIDEBAR INFO LAYOUT */
+    .user-info { 
+        flex: 1; 
+        min-width: 0; 
+        display: flex;
+        flex-direction: column; 
+        justify-content: center;
+        gap: 2px; 
+        overflow: hidden; 
+    }
+    
+        /* UPDATE USER ROW TOP & BADGE */
+    .user-row-top {
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        width: 100%;
+        margin-bottom: 2px;
+    }
+    
+    .name-container {
+        flex: 1;
+        min-width: 0; /* Penting agar ellipsis jalan */
+        overflow: hidden;
+        padding-right: 5px;
+    }
+
+    .user-row-top b { 
+        font-size: 16px; 
+        color: #fff; 
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        letter-spacing: 0.2px;
+        display: block;
+        width: 100%;
+    }
+
+    /* UPDATE META RIGHT CONTAINER (WAKTU, BADGE, CENTANG) */
+    .meta-right-container {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px; /* Gap ditambah agar rapi */
+        flex-shrink: 0; 
+        margin-left: 8px;
+        height: 20px; /* Tinggi tetap agar rapi */
+    }
+
+    .sidebar-tick {
+        font-size: 11px; 
+        color: #ccc;
+        display: flex; /* Gunakan Flex agar rapi */
+        align-items: center;
+        justify-content: center;
+    }
+    .sidebar-tick.read {
+        color: var(--seen-blue); /* Biru jika sudah read */
+    }
+
+
+    .msg-time {
+        font-size: 11px;
+        color: #888;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .user-row-bottom {
+        display: flex;
+        justify-content: flex-start; 
+        align-items: center;
+        width: 100%;
+        height: auto;
+        overflow: hidden;
+        gap: 8px; /* TAMBAHKAN INI untuk jarak rapi */
+    }
+
+    /* Hide text status in sidebar */
+    .user-info span[id^="status-text-"] {
+        display: none; 
+    }
+
+    .user-info span { 
+        font-size: 13px; 
+        color: var(--text-muted); 
+        display: block; 
+        width: 100%; 
+        white-space: nowrap; 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+        margin-top: 1px; 
+    }
+    
+    /* CHAT AREA */
+    .chat { 
+        flex: 1; 
+        display: flex; 
+        flex-direction: column; 
+        background: var(--glass-thick); 
+        position: relative; 
+        padding-top: var(--safe-top); 
+    }
+    
+    #welcome-screen {
+        position: absolute; 
+        inset: 0; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center; 
+        text-align: center; 
+        padding: 40px; 
+        z-index: 5;
+    }
+
+    /* HEADER FIX */
+    .chat-header { 
+        height: 72px; 
+        padding: 0 20px; 
+        display: flex; 
+        align-items: center; 
+        gap: 15px; 
+        border-bottom: 1px solid var(--glass-border); 
+        backdrop-filter: blur(20px); 
+        z-index: 10; 
+        background: rgba(10,10,10,0.85); 
+    }
+
+    /* Flex layout fix for header info */
+    #chat-info-block {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0; /* Important for ellipsis */
+        overflow: hidden;
+    }
+
+    #chatName {
+        display: block;
+        font-size: 16px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #fff;
+        margin-bottom: 2px;
+    }
+
+    #chatStatus {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+
+    .msgs { 
+        flex: 1; 
+        overflow-y: auto; 
+        padding: 20px; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 8px; 
+        scroll-behavior: smooth; 
+        background: radial-gradient(circle at center, #111 0%, #0a0a0a 100%);
+        scrollbar-width: none;
+    }
+    
+    .msg-wrap { 
+        display: flex; 
+        flex-direction: column; 
+        max-width: 75%; 
+        position: relative; 
+        margin-bottom: 4px;
+        transition: transform 0.2s ease;
+    }
+    
+    .msg-wrap.me { 
+        align-self: flex-end; 
+        align-items: flex-end; 
+    }
+    
+    .msg-wrap.you { 
+        align-self: flex-start; 
+        align-items: flex-start; 
+    }
+
+    .msg { 
+        padding: 10px 16px; 
+        border-radius: 18px; 
+        font-size: 15px; 
+        word-wrap: break-word; 
+        animation: fadeIn 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        position: relative;
+        line-height: 1.5;
+        user-select: text;
+        min-width: 60px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        touch-action: pan-y; 
+    }
+    
+    /* SYSTEM MESSAGE STYLE */
+    .msg-wrap.system {
+        align-self: center;
+        max-width: 90%;
+        align-items: center;
+    }
+    .msg-wrap.system .msg {
+        background: rgba(255,255,255,0.05);
+        color: #888;
+        font-size: 12px;
+        border-radius: 12px;
+        padding: 6px 12px;
+        box-shadow: none;
+        text-align: center;
+    }
+
+    @keyframes fadeIn { 
+        from { opacity: 0; transform: translateY(10px) scale(0.98); } 
+        to { opacity: 1; transform: translateY(0) scale(1); } 
+    }
+    
+    .me .msg { 
+        background: var(--me-chat); 
+        color: #000; 
+        border-bottom-right-radius: 4px; 
+    }
+    
+    .you .msg { 
+        background: var(--you-chat); 
+        color: #f0f0f0; 
+        border-bottom-left-radius: 4px; 
+        border: 1px solid var(--glass-border); 
+    }
+
+       /* PROFILE CARD CSS - PERBAIKAN LAYOUT */
+    .shared-card {
+        display: flex;
+        flex-direction: column; /* Perbaikan syntax error (tanda koma dihapus) */
+        align-items: center;
+        gap: 12px;
+        background: #2a2a2a;
+        border-radius: 16px;
+        padding: 20px;
+        width: 220px;
+        margin: 0 auto; /* Pusatkan card */
+        border: 1px solid #444;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .shared-card-img {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--accent);
+        background: #000;
+    }
+    
+    .shared-card-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        width: 100%;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .shared-card-name {
+        font-size: 16px;
+        font-weight: bold;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+    }
+    
+    .shared-card-label {
+        font-size: 11px;
+        color: #bbb;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* Tombol di bawah card agar rapi */
+    .btn-join-chat, .btn-join-group {
+        background: var(--accent);
+        border: none;
+        padding: 10px 0;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: bold;
+        color: #000;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.2s;
+        margin-top: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .btn-join-chat:active, .btn-join-group:active { 
+        transform: scale(0.96); 
+    }
+    
+    .btn-join-group { 
+        background: #2ecc71; 
+        color: white; 
+        box-shadow: 0 2px 5px rgba(46, 204, 113, 0.3);
+    }
+
+
+    /* REPLY BUBBLE STYLE */
+    .reply-bubble {
+        background: rgba(0,0,0,0.1);
+        border-left: 3px solid #fff;
+        padding: 6px 10px;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        font-size: 12px;
+    }
+    .me .reply-bubble {
+        background: rgba(255,255,255,0.2);
+        border-left-color: rgba(0,0,0,0.4);
+    }
+    .reply-sender {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 2px;
+        font-size: 11px;
+        opacity: 0.8;
+    }
+    .reply-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+    }
+
+    /* CALL MESSAGE UI - FIXED */
+    .call-msg {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        width: 100%;
+        margin: 0;
+    }
+    .me .msg .call-msg { background: rgba(0, 0, 0, 0.15); border-color: rgba(0, 0, 0, 0.2); color: #fff; }
+    .you .msg .call-msg { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.05); color: #f0f0f0; }
+    .call-msg:hover { transform: scale(1.02); background: rgba(255, 255, 255, 0.2); }
+    .me .msg .call-msg:hover { background: rgba(0, 0, 0, 0.25); }
+    
+    .call-icon-box {
+        width: 36px; height: 36px; background: rgba(46, 204, 113, 0.2); border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; font-size: 14px; color: #2ecc71; flex-shrink: 0;
+    }
+    .call-icon-box.video { background: rgba(52, 152, 219, 0.2); color: #3498db; }
+    
+    .call-info { display: flex; flex-direction: column; flex: 1; }
+    .call-title { font-size: 13px; font-weight: 700; margin-bottom: 2px; line-height: 1.1; }
+    .call-sub { font-size: 10px; opacity: 0.7; }
+    
+    .msg-meta { 
+        display: flex; 
+        align-items: center; 
+        justify-content: flex-end;
+        gap: 5px; 
+        font-size: 10px; 
+        opacity: 0.8; 
+        margin-top: 4px; 
+        margin-right: 2px;
+    }
+    
+    .msg-status {
+        font-size: 11px;
+        color: rgba(255,255,255,0.7);
+    }
+    .msg-status.read {
+        color: var(--seen-blue);
+    }
+    
+    .msg img { 
+        max-width: 100%; 
+        border-radius: 10px; 
+        margin-top: 5px; 
+        cursor: pointer; 
+        display: block;
+    }
+
+    /* VIEW ONCE CSS */
+    .vo-indicator {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 9px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        backdrop-filter: blur(2px);
+    }
+
+    audio { 
+        height: 35px; 
+        filter: invert(1) hue-rotate(180deg); 
+        max-width: 210px; 
+        margin-top: 5px; 
+        border-radius: 15px;
+    }
+
+    /* INPUT AREA */
+    .input-area { 
+        padding: 10px 12px;
+        background: var(--bg-base); 
+        border-top: 1px solid var(--glass-border); 
+        padding-bottom: calc(30px + env(safe-area-inset-bottom)); 
+        position: relative;
+        min-height: 65px; 
+    }
+
+    .input-row { 
+        display: flex; 
+        align-items: center; 
+        gap: 8px; 
+        background: var(--glass-white); 
+        padding: 8px 12px; 
+        border-radius: 30px; 
+        border: 1px solid var(--glass-border);
+        min-height: 48px;
+        width: 100%; 
+    }
+
+    #recording-ui {
+        display: none; 
+        align-items: center;
+        justify-content: space-between;
+        width: 100%; 
+        flex: 1;
+        background: transparent; 
+        padding: 0px 2px; 
+        border-radius: 12px;
+        pointer-events: none; 
+        position: relative;
+        z-index: 10;
+        overflow: visible; 
+    }
+
+    .record-info {
+        color: #ff5e5e;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px; 
+        font-weight: 700;
+        flex-shrink: 0; 
+    }
+
+    #slide-instruction {
+        color: #888;
+        font-size: 10px; 
+        animation: slideLeft 1.5s infinite;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end; 
+        gap: 4px;
+        max-width: 45%; 
+        white-space: nowrap; 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+    }
+        
+    #text { 
+        flex: 1; 
+        border: none; 
+        background: transparent; 
+        color: white; 
+        padding: 8px 4px; 
+        font-size: 16px; 
+        user-select: text;
+        font-weight: 400;
+    }
+    
+    .btn-action { 
+        background: none; 
+        border: none; 
+        color: var(--text-muted); 
+        font-size: 22px; 
+        cursor: pointer; 
+        margin: 0 2px;
+        transition: color 0.2s, transform 0.1s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+    }
+    .btn-action:active { transform: scale(0.9); color: white; }
+
+    /* EMOJI PANEL */
+    #emojiPanel {
+        display: none; 
+        position: absolute; 
+        bottom: 85px; 
+        left: 15px; 
+        right: 15px;
+        background: #1a1a1a; 
+        border: 1px solid var(--glass-border); 
+        border-radius: 20px;
+        padding: 0; 
+        max-height: 350px; 
+        z-index: 1000; 
+        box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+        flex-direction: column;
+        overflow: hidden;
+        pointer-events: auto;
+    }
+
+    .emoji-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 15px;
+        border-bottom: 1px solid var(--glass-border);
+        background: #222;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .emoji-close-btn {
+        color: #ff5e5e;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 50%;
+        transition: background 0.2s;
+    }
+
+    #emojiTabsContainer {
+        display: flex;
+        overflow-x: auto;
+        padding: 10px;
+        background: #161616;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .emoji-tab {
+        font-size: 20px;
+        padding: 8px 12px;
+        cursor: pointer;
+        opacity: 0.5;
+        transition: opacity 0.2s, transform 0.2s;
+        flex-shrink: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+    }
+
+    .emoji-tab.active { 
+        opacity: 1; 
+        background: var(--accent); 
+        transform: scale(1.1); 
+    }
+
+    #emojiGridContainer {
+        overflow-y: auto;
+        padding: 10px;
+        flex: 1;
+        scrollbar-width: none;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+        gap: 8px;
+        height: 220px; 
+    }
+
+    .emoji-item { 
+        font-size: 24px; 
+        text-align: center; 
+        cursor: pointer; 
+        padding: 5px; 
+        border-radius: 8px; 
+        transition: background 0.1s, transform 0.1s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        aspect-ratio: 1 / 1; 
+    }
+    
+    .emoji-item:hover { 
+        background: var(--glass-white); 
+        transform: scale(1.2); 
+    }
+
+    .btn-send { 
+        background: var(--accent); 
+        border: none; 
+        width: 40px; 
+        height: 40px; 
+        border-radius: 50%; 
+        color: black; 
+        cursor: pointer; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        flex-shrink: 0; 
+        transition: transform 0.1s;
+        box-shadow: 0 4px 10px rgba(212, 163, 115, 0.3);
+    }
+    .btn-send:active { transform: scale(0.9); }
+
+    #toast { 
+        position: fixed; top: 40px; left: 50%; transform: translateX(-50%); 
+        background: var(--accent); color: black; padding: 10px 20px; 
+        border-radius: 20px; z-index: 9999; display: none; font-weight: bold; 
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    /* STATUS ANIMATION CSS */
+    .status-anim {
+        animation: slideStatus 0.4s ease-out;
+    }
+    
+    @keyframes slideStatus {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* MODALS & SHEETS */
+    .modal {
+        display: none; 
+        position: fixed; 
+        inset: 0; 
+        background: rgba(0,0,0,0.9); 
+        z-index: 3000; 
+        align-items: center; 
+        justify-content: center;
+        backdrop-filter: blur(5px);
+    }
+    .modal-content { 
+        background: #161616; padding: 30px; border-radius: 25px; 
+        width: 85%; max-width: 350px; text-align: center; border: 1px solid var(--glass-border);
+    }
+
+    @media (max-width: 768px) {
+        .sidebar { width: 100%; position: absolute; height: 100%; left: 0; top: 0; }
+        .sidebar.hidden { transform: translateX(-100%); }
+        .chat { width: 100%; }
+    }
+
+    /* MESSAGE MENU UPDATE */
+    .msg-context-menu {
+        display: none; 
+        position: fixed; 
+        z-index: 6000; /* Increased z-index */
+        background: #1a1a1a; 
+        border: 1px solid var(--glass-border);
+        border-radius: 15px; 
+        width: 170px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        transform: none; 
+        left: 50%; 
+        top: 50%;
+    }
+
+    /* CONTACT MENU CSS */
+    .contact-context-menu {
+        display: none;
+        position: fixed;
+        z-index: 6000; /* Increased z-index */
+        background: #1a1a1a;
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        width: 180px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        padding: 5px 0;
+    }
+
+    .menu-item {
+        padding: 12px 15px; font-size: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;
+    }
+    .menu-item:hover { background: var(--glass-white); color: var(--accent); }
+    .menu-item.danger { color: #ff5e5e; }
+
+    /* REPLY PREVIEW */
+    #reply-preview {
+        display: none; 
+        padding: 10px 12px; 
+        background: #1a1a1a; 
+        border-left: 4px solid var(--accent); 
+        border-top: 1px solid var(--glass-border);
+        margin: 0; 
+        position: absolute;
+        bottom: 100%; 
+        left: 0;
+        right: 0;
+        z-index: 5;
+        animation: slideUp 0.2s ease;
+        cursor: pointer;
+    }
+    @keyframes slideUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .action-sheet-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+        z-index: 5000; align-items: flex-end;
+    }
+    .action-sheet {
+        width: 100%; background: #1a1a1a; border-top-left-radius: 20px; border-top-right-radius: 20px;
+        padding: 20px; animation: slideUp 0.3s ease-out;
+    }
+    .sheet-header { color: #888; text-align: center; margin-bottom: 15px; font-size: 14px; }
+    .sheet-btn {
+        width: 100%; padding: 15px; border: none; border-radius: 12px; margin-bottom: 10px;
+        font-size: 16px; font-weight: bold; cursor: pointer;
+    }
+    .sheet-btn.danger { background: #ff4757; color: white; }
+    .sheet-btn.cancel { background: #333; color: white; }
+
+    /* LIGHTBOX & VIEW ONCE */
+    #imageLightbox {
+        display: none; 
+        position: fixed; 
+        inset: 0; 
+        background: #000; 
+        z-index: 6000; 
+        justify-content: center; 
+        align-items: center; 
+        flex-direction: column; 
+        cursor: pointer;
+    }
+    #imageLightbox img { 
+        max-width: 90%; 
+        max-height: 80vh; 
+        border-radius: 10px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+        object-fit: contain; 
+        user-select: none;
+        pointer-events: none; 
+    }
+    #lightbox-close { 
+        position: absolute; 
+        top: 20px; 
+        right: 20px; 
+        color: white; 
+        font-size: 30px; 
+        cursor: pointer; 
+        background: rgba(255,255,255,0.2); 
+        border-radius: 50%; 
+        width: 40px; 
+        height: 40px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        z-index: 6001;
+    }
+    .lightbox-vo-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(10px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 6002;
+        color: white;
+        text-align: center;
+        cursor: pointer;
+        transition: opacity 0.3s;
+    }
+    .lightbox-vo-overlay.hidden { opacity: 0; pointer-events: none; }
+    .vo-lock-icon { font-size: 50px; margin-bottom: 15px; color: #ff5e5e; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    .vo-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+    .vo-warning { color: #ff5e5e; font-size: 12px; margin-bottom: 20px; font-weight: bold; letter-spacing: 1px;}
+    .vo-btn { 
+        padding: 12px 24px; 
+        background: var(--accent); 
+        color: black; 
+        border-radius: 30px; 
+        font-weight: bold; 
+        box-shadow: 0 4px 15px rgba(212, 163, 115, 0.4);
+    }
+
+    #imgPreviewModal {
+        display: none; 
+        position: fixed; 
+        inset: 0; 
+        background: rgba(0, 0, 0, 0.95); 
+        z-index: 5000; 
+        flex-direction: column; 
+        justify-content: center; 
+        align-items: center; 
+        backdrop-filter: blur(10px);
+    }
+    .preview-content {
+        width: 90%; max-width: 400px; text-align: center; display: flex; flex-direction: column; gap: 20px;
+    }
+    #imgPreviewBox {
+        max-width: 100%; max-height: 70vh; border-radius: 15px; object-fit: contain; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid var(--glass-border);
+    }
+    .preview-actions { display: flex; gap: 20px; justify-content: center; width: 100%; }
+    .btn-preview {
+        flex: 1; padding: 15px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s;
+    }
+    .btn-preview.cancel { background: #333; color: white; }
+    .btn-preview.send { background: var(--accent); color: black; }
+    .btn-preview:active { transform: scale(0.95); }
+    .view-once-container { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; cursor: pointer; }
+    .view-once-label { font-size: 12px; color: #ccc; }
+
+    /* FORWARD/SHARE MODAL */
+    .generic-modal {
+        display: none;
+        position: fixed;
+        inset: 0,
+        background: rgba(0,0,0,0.95);
+        z-index: 4000;
+        flex-direction: column;
+    }
+    .modal-header {
+        padding: 20px;
+        text-align: center;
+        background: #1a1a1a;
+        border-bottom: 1px solid #333;
+    }
+    .modal-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+    }
+    .modal-item {
+        display: flex,
+        align-items: center,
+        gap: 15px,
+        padding: 12px,
+        border-bottom: 1px solid #222,
+        cursor: pointer
+    }
+    .modal-item:active { background: #222; }
+    .item-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .item-name { font-size: 16px; color: white; font-weight: 500; }
+
+    /* Call Modal */
+    #videoCallModal {
+        display: none; 
+        position: fixed; 
+        inset: 0; 
+        background: #000; 
+        z-index: 10000000; 
+        width: 100%; 
+        height: 100%;
+        padding-top: env(safe-area-inset-top); 
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    #jitsi-container { width: 100%; height: 100%; display: none; }
+
+    #call-overlay {
+        display: none; 
+        position: fixed; 
+        inset: 0; 
+        background: #000; 
+        z-index: 10000000; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center; 
+        text-align: center; 
+        color: white; 
+        overflow: hidden;
+    }
+    .call-bg-anim {
+        position: absolute; 
+        top: 50%; 
+        left: 50%; 
+        transform: translate(-50%, -50%); 
+        width: 200px; 
+        height: 200px; 
+        border-radius: 50%; 
+        background: radial-gradient(circle, rgba(46, 204, 113, 0.4) 0%, rgba(0,0,0,0) 70%); 
+        animation: pulse-ring 2s infinite; 
+        z-index: 1; 
+    }
+    .call-bg-anim:nth-child(2) { animation-delay: 0.5s; }
+    .call-bg-anim:nth-child(3) { animation-delay: 1s; }
+    @keyframes pulse-ring {
+        0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.8; } 
+        100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+    }
+    .call-avatar {
+        width: 150px; 
+        height: 150px; 
+        border-radius: 50%; 
+        object-fit: cover; 
+        border: 4px solid var(--accent); 
+        z-index: 2; 
+        margin-bottom: 20px; 
+        animation: float 3s ease-in-out infinite; 
+        box-shadow: 0 0 30px rgba(212, 163, 115, 0.5); 
+    }
+    @keyframes float {
+        0% { transform: translateY(0px); } 
+        50% { transform: translateY(-15px); } 
+        100% { transform: translateY(0px); } 
+    }
+    .call-info { z-index: 2; margin-bottom: 50px; }
+    .call-name { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+    .call-status { font-size: 16px; color: #ccc; animation: blink-text 1.5s infinite; }
+    @keyframes blink-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .call-actions {
+        position: absolute; bottom: 60px; display: flex; gap: 40px; z-index: 2; width: 100%; justify-content: center; padding-bottom: env(safe-area-inset-bottom);
+    }
+    .btn-call {
+        width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; border: none; transition: transform 0.2s;
+    }
+    .btn-call:active { transform: scale(0.9); }
+    .btn-accept { background: #2ecc71; color: white; box-shadow: 0 0 20px rgba(46, 204, 113, 0.4); }
+    .btn-reject { background: #e74c3c; color: white; box-shadow: 0 0 20px rgba(231, 76, 60, 0.4); }
+    
+    #custom-toast-container {
+        position: fixed; top: -200px; left: 0; right: 0; z-index: 99999; padding: 10px; display: flex; justify-content: center; pointer-events: none; transition: top 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    #custom-toast-card {
+        background: #1a1a1a; width: 90%; max-width: 400px; border-radius: 15px; padding: 15px; display: flex; align-items: flex-start; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); animation: slideDown 0.3s ease-out; cursor: pointer; pointer-events: auto;
+    }
+    #custom-toast-card:active { transform: scale(0.98); background: #252525; }
+    .toast-avatar { width: 45px; height: 45px; border-radius: 12px; object-fit: cover; border: 2px solid var(--accent); }
+    .toast-content { flex: 1; }
+    .toast-title { color: white; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .toast-body { color: #ccc; font-size: 13px; line-height: 1.4; }
+    .toast-time { font-size: 10px; color: #666; margin-top: 4px; }
+    @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .recording-active { animation: pulse-red 1s infinite; color: #ff5e5e !important; }
+    @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+</style>
+</head>
+<body>
+
+<audio id="notificationSound" src="pesan.mp3" preload="auto"></audio>
+<audio id="ringtoneSound" src="ringtone.mp3" preload="auto" loop></audio>
+
+    <div id="custom-toast-container"></div>
+
+    <!-- SHARE/CONTACT MODAL -->
+    <div id="shareModal" class="generic-modal">
+        <div id="shareModalHeader" class="modal-header">
+            <h3 style="margin:0; color:white;">Kirim ke...</h3>
+            <i class="fas fa-times" onclick="closeShareModal()" style="position:absolute; right:20px; top:20px; color:#888; cursor:pointer; font-size:20px;"></i>
+        </div>
+        <div id="shareList" class="modal-list"></div>
+    </div>
+
+    <!-- FORWARD MODAL -->
+    <div id="forwardModal" class="generic-modal">
+        <div id="forwardModalHeader" class="modal-header">
+            <h3 style="margin:0; color:white;">Teruskan pesan ke...</h3>
+            <i class="fas fa-times" onclick="closeForwardModal()" style="position:absolute; right:20px; top:20px; color:#888; cursor:pointer; font-size:20px;"></i>
+        </div>
+        <div id="forwardList" class="modal-list"></div>
+    </div>
+
+    <div id="videoCallModal">
+        <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+            <button onclick="endVideoCall()" style="background: #ff5e5e; color: white; border: none; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: bold;"><i class="fas fa-phone-slash"></i> Tutup</button>
+        </div>
+        <div id="jitsi-container" style="width: 100%; height: 100%; display: none;"></div>
+    </div>
+
+    <div id="call-overlay">
+        <div class="call-bg-anim"></div><div class="call-bg-anim"></div><div class="call-bg-anim"></div>
+        <img id="call-overlay-avatar" src="" class="call-avatar">
+        <div class="call-info">
+            <div id="call-overlay-name" class="call-name">Nama</div>
+            <div class="call-status">Sedang Menelepon...</div>
+        </div>
+        <div class="call-actions">
+            <button onclick="rejectCall()" class="btn-call btn-reject"><i class="fas fa-phone-slash"></i></button>
+            <button onclick="acceptCall()" class="btn-call btn-accept"><i class="fas fa-phone"></i></button>
+        </div>
+    </div>
+
+    <div id="imgPreviewModal">
+        <div class="preview-content">
+            <div style="font-size: 18px; font-weight: 600;">Kirim Gambar</div>
+            <img id="imgPreviewBox" src="" alt="Preview">
+            <div class="preview-actions">
+                <div class="view-once-container" onclick="toggleViewOnce()">
+                    <i id="viewOnceIcon" class="far fa-eye"></i> 
+                    <span id="viewOnceLabel" class="view-once-label">Sekali Lihat</span>
+                </div>
+                <button class="btn-preview cancel" onclick="cancelSendImage()"><i class="fas fa-times"></i> Batal</button>
+                <button class="btn-preview send" onclick="confirmSendImage()"><i class="fas fa-paper-plane"></i> Kirim</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="imageLightbox" onclick="closeLightbox()">
+        <div id="lightbox-close"><i class="fas fa-times"></i></div>
+        <img id="lightboxImg" src="" oncontextmenu="return false;">
+        <div id="lightboxVoOverlay" class="lightbox-vo-overlay" onclick="handleVoClick()">
+            <div class="vo-lock-icon"><i class="fas fa-eye-slash"></i></div>
+            <div class="vo-title">LARANGAN SCREENSHOT / RECORDING</div>
+            <div class="vo-warning">FOTO INI HANYA BISA DILIHAT 1 KALI</div>
+            <div class="vo-btn">LIHAT SEKARANG</div>
+        </div>
+    </div>
+
+<div class="app">
+    <div class="sidebar" id="sidebar">
+        <div class="side-header">
+            <div style="display:flex; align-items:center;" onclick="window.location.href='profile.html'">
+                <img id="myPhotos" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="my-avatar">
+                <div id="myName" style="margin-left:12px; font-weight:600; font-size:18px; color: #fff;">...</div>
+            </div>
+            <div style="display:flex; gap:20px;">
+                <i class="fa fa-users" onclick="openCreateGroup()" style="color:var(--accent); font-size:18px; cursor:pointer;"></i>
+                <i class="fa fa-user-plus" onclick="openAddFriend()" style="color:var(--accent); font-size:18px; cursor:pointer;"></i>
+                <i class="fa fa-sign-out-alt" onclick="logout()" style="color:#ff5e5e; font-size:18px; cursor:pointer;"></i>
+            </div>
+        </div>
+        
+        <div class="search-container">
+            <div class="search-box">
+                <i class="fa fa-search" style="color:var(--accent)"></i>
+                <input type="text" id="userSearch" placeholder="Cari percakapan..." oninput="searchUser()">
+            </div>
+        </div>
+
+        <div id="users"></div>
+    </div>
+
+    <div class="chat">
+        <!-- WELCOME SCREEN -->
+        <div id="welcome-screen" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px;">
+            <div style="width:100px; height:100px; background:var(--glass-white); border-radius:30px; display:flex; align-items:center; justify-content:center; margin-bottom:20px; border:1px solid var(--glass-border);">
+                <i class="fa fa-shield-halved" style="font-size:45px; color:var(--accent)"></i>
+            </div>
+            <h2 style="letter-spacing:2px; margin-bottom:5px;">GOCHAT <span style="color:var(--accent)">PRO</span></h2>
+            <p style="color:var(--text-muted); font-size:14px; max-width:250px;">Percakapan pribadi dan aman.</p>
+        </div>
+
+        <!-- CHAT UI -->
+        <div id="chat-header-area" class="chat-header" style="display:none;">
+            <i class="fas fa-arrow-left" onclick="closeChat()" style="font-size:20px; cursor:pointer; color: #fff;"></i>
+            <div style="position: relative;">
+                <img id="chatAvatar" src="" onclick="goToProfile()" style="width:48px; height:48px; border-radius:14px; margin-left:5px; object-fit:cover; border: 2px solid var(--glass-border);">
+                <div id="header-status-dot" class="status-dot" style="display:none; top:0; right:0; border-color: #1a1a1a;"></div>
+            </div>
+            <div id="chat-info-block" onclick="goToProfile()">
+                <b id="chatName">...</b>
+                <!-- Status Text container -->
+                <div id="chatStatus">...</div>
+            </div>
+            <div style="display:flex; gap:22px; color:var(--accent); font-size:20px;">
+                <i class="fas fa-phone-alt" onclick="startJitsi('audio')" style="cursor:pointer;"></i>
+                <i class="fas fa-video" onclick="startJitsi('video')" style="cursor:pointer;"></i>
+            </div>
+        </div>
+
+        <div id="msgs" class="msgs" style="display:none;"></div>
+
+        <div id="inputArea" class="input-area" style="display:none;">
+            <div id="reply-preview" onclick="if(replyData) scrollToMessage(replyData.id)" style="cursor:pointer;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <b id="reply-user" style="color:var(--accent); font-size:12px;">Nama</b>
+                    <i class="fa fa-times" onclick="event.stopPropagation(); cancelReply()" style="cursor:pointer; color:#888; padding:5px;"></i>
+                </div>
+                <div id="reply-text" style="font-size:11px; color:#bbb; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Pesan</div>
+            </div>
+
+            <div id="emojiPanel">
+                <div class="emoji-header">
+                    <i class="fas fa-times emoji-close-btn" onclick="toggleEmojiPanel()"></i>
+                </div>
+                <div class="emoji-tabs-container" id="emojiTabsContainer"></div>
+                <div class="emoji-grid-container" id="emojiGridContainer"></div>
+            </div>
+
+            <div class="input-row">
+                <div id="normal-input" style="display:flex; flex:1; align-items:center; gap:5px;">
+                    <button id="emojiButton" class="btn-action"><i class="far fa-smile"></i></button>
+                    <label for="imgInput" class="btn-action"><i class="far fa-image"></i></label>
+                    <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="sendImage(this)">
+                    <input type="text" id="text" placeholder="Ketik pesan..." autocomplete="off">
+                </div>
+
+                <div id="recording-ui">
+                    <div class="record-info"><i class="fas fa-microphone blink"></i><span id="record-timer">00:00</span></div>
+                    <div id="slide-instruction"><i class="fas fa-chevron-left"></i> Geser ke kiri untuk batal</div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button id="micButton" class="btn-action"><i class="fas fa-microphone"></i></button>
+                    <button id="sendButton" class="btn-send" onclick="send()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALS -->
+<div id="addFriendModal" class="modal">
+    <div class="modal-content">
+        <h3 style="color:var(--accent); margin-top:0;">Mulai Chat Baru</h3>
+        <p style="color:#888; font-size:12px;">Masukkan ID User untuk memulai percakapan.</p>
+        <input type="text" id="friendInput" placeholder="ID User (Contoh: Budi_1234)" style="width:100%; padding:14px; border-radius:12px; background:#000; border:1px solid #333; color:white; margin:15px 0; text-align:center;">
+        <button onclick="processAddFriend()" style="width:100%; padding:14px; background:var(--accent); border:none; border-radius:12px; font-weight:bold; color:black;">LANJUT</button>
+        <p onclick="closeAddFriend()" style="margin-top:20px; color:#666; cursor:pointer; font-size:14px;">Batal</p>
+    </div>
+</div>
+
+<div id="createGroupModal" class="modal">
+    <div class="modal-content">
+        <h3 style="color:var(--accent); margin-top:0;">Buat Grup</h3>
+        <input type="text" id="groupNameInput" placeholder="Nama Grup" style="width:100%; padding:14px; border-radius:12px; background:#000; border:1px solid #333; color:white; margin:15px 0; text-align:center;">
+        <button onclick="processCreateGroup()" style="width:100%; padding:14px; background:var(--accent); border:none; border-radius:12px; font-weight:bold; color:black;">BUAT GRUP</button>
+        <p onclick="closeCreateGroup()" style="margin-top:20px; color:#666; cursor:pointer; font-size:14px;">Batal</p>
+    </div>
+</div>
+
+<!-- MESSAGE MENU -->
+<div id="msgMenu" class="msg-context-menu">
+    <div class="menu-item" onclick="handleReply()"><i class="fa fa-reply"></i> Balas</div>
+    <div class="menu-item" onclick="handleForward()"><i class="fa fa-share"></i> Teruskan</div>
+    <div class="menu-item" onclick="handleCopy()"><i class="fa fa-copy"></i> Salin Teks</div>
+    <div class="menu-item" id="menu-edit" onclick="handleEdit()"><i class="fa fa-edit"></i> Edit</div>
+    <hr style="border:0; border-top:1px solid #333; margin:0;">
+    <div class="menu-item danger" onclick="handleDelete()"><i class="fa fa-trash"></i> Hapus</div>
+</div>
+
+<!-- CONTACT MENU -->
+<div id="contactMenu" class="contact-context-menu">
+    <!-- Tambahkan ID 'menu-share-profile' untuk item pertama -->
+    <div class="menu-item" id="menu-share-profile" onclick="openShareModal('profile')"><i class="fa fa-share"></i> Share Profile</div>
+    <div class="menu-item" id="menu-share-group" onclick="openShareModal('group')" style="display:none;"><i class="fa fa-share"></i> Share Group</div>
+    <hr style="border:0; border-top:1px solid #333; margin:0;">
+    <div class="menu-item danger" id="menu-delete-me" onclick="deleteContactMenu('me')"><i class="fa fa-trash"></i> Hapus untuk Saya</div>
+    <div class="menu-item danger" id="menu-delete-everyone" onclick="deleteContactMenu('everyone')"><i class="fa fa-ban"></i> Hapus untuk Semua</div>
+    <div class="menu-item danger" id="menu-leave-group" onclick="leaveGroup()" style="display:none;"><i class="fa fa-sign-out-alt"></i> Keluar Grup</div>
+</div>
+
+<div id="deleteSheet" class="action-sheet-overlay" onclick="closeDeleteSheet()">
+    <div class="action-sheet" onclick="event.stopPropagation()">
+        <div class="sheet-header">Hapus pesan?</div>
+        <button id="btnDeleteEveryone" class="sheet-btn danger" onclick="confirmDeleteEveryone()">Hapus untuk Semua</button>
+        <button class="sheet-btn danger" onclick="confirmDeleteMe()">Hapus untuk Saya</button>
+        <button class="sheet-btn cancel" onclick="closeDeleteSheet()">Batal</button>
+    </div>
+</div>
+
+<div id="menuOverlay" onclick="closeAllMenus()"></div>
+<div id="toast"></div>
+
+<script>
+/* ========== ENCRYPTION/DECRYPTION ========== */
+function encryptData(text) {
+    try {
+        return CryptoJS.AES.encrypt(text, "Global_Key_123").toString();
+    } catch(e) {
+        console.error("Encrypt error:", e);
+        return text;
+    }
+}
+
+function decryptData(encrypted) {
+    try {
+        const bytes = CryptoJS.AES.decrypt(encrypted, "Global_Key_123");
+        return bytes.toString(CryptoJS.enc.Utf8);
+    } catch(e) {
+        console.error("Decrypt error:", e);
+        return encrypted;
+    }
+}
+
+/* ========== CONFIG & INIT ========== */
+const firebaseConfig = {
+    apiKey: "AIzaSyCEamepceiYZtcqlcRnRmFHe0smkGfu_A4",
+    authDomain: "gochat-35172.firebaseapp.com",
+    databaseURL: "https://gochat-35172-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "gochat-35172",
+    storageBucket: "gochat-35172.appspot.com",
+    appId: "1:206571646434:web:4036d43695a00474499dbb"
+};
+
+try {
+    firebase.initializeApp(firebaseConfig);
+} catch (e) {
+    console.error("Firebase Init Error:", e);
+}
+
+const db = firebase.database();
+const currentUser = localStorage.getItem("gochat_user");
+let currentChatId = null;
+let activeChatRef = null; 
+let currentPartnerId = null;
+let isGroup = false;
+let mediaRecorder;
+let audioChunks = [];
+let vnBlob = null;
+let typingTimeout;
+let selectedMsgId = null;
+let selectedMsgData = null;
+let selectedContactId = null; 
+let shareType = null; // 'profile' or 'group'
+let isEditing = false;
+let replyData = null; 
+let startX;
+let isCancelled = false;
+let recordInterval;
+let jitsiApi = null;
+let isWindowFocused = document.hasFocus();
+let pendingImageBase64 = null; 
+let isViewOnceEnabled = false; 
+let viewOnceIgnoredKey = null; 
+let currentCallRoom = null; 
+let currentCallType = null;
+let globalContacts = {}; 
+let currentEmojiCategory = 'Smileys';
+let wakeLock = null;
+let viewOnceTimer = null;
+let currentViewOnceKey = null;
+
+window.addEventListener('focus', () => { isWindowFocused = true; });
+window.addEventListener('blur', () => { isWindowFocused = false; });
+
+const emojiCategories = {
+    'Smileys': ['😊', '😂', '😍', '😎', '🤔', '😭', '😡', '😴'],
+    'People': ['👍', '👎', '👏', '🙏', '✌️', '👋', '🤝'],
+    'Nature': ['🌷', '🌸', '🌺', '🌻', '🌼', '🌹', '🌳', '🌴'],
+    'Food': ['🍔', '🍕', '🍣', '🍜', '🍰', '🍦', '☕', '🍺'],
+    'Activity': ['🏃', '⚽', '🏀', '🎮', '🎵', '🎬', '📷'],
+    'Objects': ['🎈', '🎁', '💡', '📱', '💻', '⌚', '📚'],
+    'Symbols': ['❤️', '💔', '⭐', '✨', '🔥', '💯', '✅'],
+    'Flags': ['🚩', '🏁', '🏳️', '🇮🇩', '🇺🇸', '🇬🇧', '🇯🇵']
+};
+
+const emojiIcons = {
+    'Smileys': '😊',
+    'People': '👥',
+    'Nature': '🌷',
+    'Food': '🍔',
+    'Activity': '🏃',
+    'Objects': '🎈',
+    'Symbols': '❤',
+    'Flags': '🚩'
+};
+
+async function initApp() {
+    if(!currentUser) { 
+        window.location.href="index.html"; 
+        return; 
+    }
+    
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('SW OK'))
+            .catch(err => console.error('Gagal SW:', err));
+    }
+
+    if (Notification.permission !== "granted") {
+        try {
+            Notification.requestPermission();
+        } catch (e) {}
+    }
+    
+    db.ref("users/" + currentUser).on("value", s => {
+        const d = s.val();
+        if(d) {
+            const myNameEl = document.getElementById("myName");
+            if(myNameEl) myNameEl.innerText = d.username;
+            const myPhotoEl = document.getElementById("myPhotos");
+            if(myPhotoEl) myPhotoEl.src = d.photo || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+            db.ref("users/" + currentUser).update({ online: true, lastSeen: Date.now() });
+        }
+    });
+
+    db.ref("users/" + currentUser + "/online").onDisconnect().set(false);
+    db.ref("users/" + currentUser + "/lastSeen").onDisconnect().set(Date.now());
+
+    loadContacts();
+    setupEmoji(); 
+    setupTypingListener();
+    
+    // TAMBAHKAN BARIS INI AGAR NOTIFIKASI BERFUNGSI
+    setupNotificationListener(); 
+
+    const textEl = document.getElementById("text");
+    if(textEl) {
+        textEl.onkeydown = e => { 
+            if(e.key === "Enter") send(); 
+        };
+    }
+}
+
+/* --- NOTIFICATION SYSTEM --- */
+function setupNotificationListener() {
+    // Listener ini memantau perubahan di user_chats milik kita
+    // Jika ada pesan masuk (unread bertambah) dan app sedang di background, munculkan notif
+    const chatRef = db.ref(`user_chats/${currentUser}`);
+    
+    chatRef.on('child_changed', snap => {
+        const partnerId = snap.key;
+        const data = snap.val();
+        
+        // 1. Pastikan pesan bukan dari chat yang sedang kita buka saat ini
+        // 2. Pastikan app sedang tidak aktif (document.hidden) atau tab tidak fokus
+        if (currentChatId !== partnerId && (document.hidden || !document.hasFocus())) {
+            if (data.unread > 0) {
+                const contact = globalContacts[partnerId];
+                const name = contact?.name || contact?.username || partnerId;
+                const msg = data.lastMsg || "Mengirim pesan...";
+                
+                showSystemNotification(name, msg, partnerId);
+            }
+        }
+    });
+}
+
+function showSystemNotification(title, body, partnerId) {
+    // 1. Mainkan Suara
+    playAudio("notificationSound");
+
+    // 2. Munculkan Notifikasi
+    if (Notification.permission === "granted") {
+        const notif = new Notification(title, {
+            body: body,
+            // GANTI ICON DI SINI SESUAI URL ANDA
+            icon: "https://cdn-icons-png.flaticon.com/512/733/733585.png",
+            badge: "https://cdn-icons-png.flaticon.com/512/733/733585.png",
+            vibrate: [200, 100, 200]
+        });
+
+        notif.onclick = function() {
+            window.focus();
+            const contact = globalContacts[partnerId];
+            const photo = contact?.photo || "https://cdn-icons-png.flaticon.com/512/733/733585.png";
+            const isGrp = partnerId.startsWith("GROUP_");
+            const name = contact?.name || partnerId;
+            openChat(partnerId, photo, name, isGrp);
+            notif.close();
+        };
+    }
+}
+
+/* --- HELPER UNTUK SUARA YANG STABIL --- */
+function playAudio(audioId) {
+    const audio = document.getElementById(audioId);
+    if (!audio) return;
+    
+    // Reset ke awal
+    audio.currentTime = 0;
+    
+    // Gunakan Promise agar lebih tangguh terhadap error browser
+    audio.play().catch(error => {
+        console.warn("Gagal main audio:", audioId, error);
+        // Coba mainkan lagi jika gagal (kadang perlu 2x klik di background)
+        audio.play();
+    });
+}
+
+function setupEmoji() {
+    const tabsContainer = document.getElementById('emojiTabsContainer');
+    if(!tabsContainer) return;
+    const categories = Object.keys(emojiCategories);
+    tabsContainer.innerHTML = "";
+    
+    categories.forEach(cat => {
+        const btn = document.createElement("div");
+        btn.className = `emoji-tab ${currentEmojiCategory === cat ? 'active' : ''}`;
+        btn.innerText = emojiIcons[cat] || cat.substring(0, 1);
+        btn.onclick = () => renderEmojiGrid(cat);
+        tabsContainer.appendChild(btn);
+    });
+    renderEmojiGrid('Smileys');
+}
+
+function renderEmojiGrid(category) {
+    currentEmojiCategory = category;
+    document.querySelectorAll('.emoji-tab').forEach(t => t.classList.remove('active'));
+    const tabs = document.querySelectorAll('.emoji-tab');
+    tabs.forEach(t => { 
+        if(t.innerText === emojiIcons[category]) t.classList.add('active'); 
+    });
+
+    const grid = document.getElementById("emojiGridContainer");
+    if(!grid) return;
+    grid.innerHTML = "";
+
+    emojiCategories[category].forEach(emojiChar => {
+        const el = document.createElement("div");
+        el.className = "emoji-item";
+        el.innerText = emojiChar;
+        el.onclick = (e) => {
+            e.stopPropagation(); 
+            const textInput = document.getElementById("text");
+            textInput.value += emojiChar;
+            textInput.focus();
+        };
+        grid.appendChild(el);
+    });
+}
+
+// --- SIDEBAR & STATUS LOGIC ---
+
+function updateSidebarTick(partnerId, isSeen) {
+    // Catatan: currentPartnerId harus sudah diupdate di fungsi openChat
+    // Kita gunakan partnerId langsung
+    const tickId = isGroup ? `tick-GROUP_${currentPartnerId}` : `tick-${partnerId}`;
+    const tickEl = document.getElementById(tickId);
+    
+    if(tickEl) {
+        if(isSeen) {
+            tickEl.className = "fas fa-check-double sidebar-tick read";
+        } else {
+            tickEl.className = "fas fa-check sidebar-tick";
+        }
+    }
+}
+function formatLastSeen(timestamp) {
+    if(!timestamp) return "";
+    const date = new Date(timestamp);
+    const hours = date.getHours().toString().padStart(2,'0');
+    const mins = date.getMinutes().toString().padStart(2,'0');
+    return `Terakhir dilihat jam ${hours}:${mins}`;
+}
+
+// FIX: Hydrate function to fix "..." and wrong tick on first load
+function hydrateContactLastMessage(id) {
+    const isGrp = id.startsWith("GROUP_");
+    const chatId = isGrp ? id : [currentUser, id].sort().join("_");
+    
+    db.ref("chats/" + chatId).limitToLast(1).once("value", snap => {
+        if(!snap.exists()) return;
+        
+        const msgs = snap.val();
+        const key = Object.keys(msgs)[0];
+        const m = msgs[key];
+        
+        // Get DOM elements
+        const previewEl = document.getElementById(`preview-${id}`);
+        const tickEl = document.getElementById(`tick-${id}`);
+        const timeEl = document.querySelector(`#contact-${id} .msg-time`);
+        
+        if(!previewEl) return;
+
+        // 1. Fix Text Preview
+        let textPreview = "";
+        try {
+            if(m.text.startsWith("IMG:") || m.text.startsWith("VO:IMG:")) {
+                textPreview = "📷 Foto";
+            } else if (m.text.startsWith("TYPE:VN:")) {
+                textPreview = "🎤 Pesan Suara";
+            } else if (m.text.startsWith("PROFILE_CARD:")) {
+                textPreview = "Kartu Profil";
+            } else if (m.text.startsWith("GROUP_CARD:")) {
+                textPreview = "Kartu Grup";
+            } else if (m.text.startsWith("TYPE:SYSTEM:")) {
+                textPreview = "Pesan Sistem";
+            } else if (m.text.startsWith("CALL_JITSI:")) {
+                textPreview = "Panggilan Masuk";
+            } else {
+                textPreview = decryptData(m.text);
+                if(textPreview.length > 30) textPreview = textPreview.substring(0, 30) + "...";
+            }
+        } catch(e) {
+            textPreview = "Pesan terenkripsi";
+        }
+        
+        previewEl.innerText = textPreview;
+
+        // 2. Fix Time
+        if(timeEl && m.time) {
+            const d = new Date(m.time);
+            timeEl.innerText = d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0');
+        }
+
+        // 3. Fix Tick (STRICT: Only if message is from me)
+        if(tickEl) {
+            if(m.from === currentUser) {
+                tickEl.style.display = 'block'; // Show if me
+                if(m.seen) {
+                    tickEl.className = "fas fa-check-double sidebar-tick read";
+                tickEl.style.color = "#3498db"; // Force blue
+                    tickEl.style.opacity = 1;
+                    tickEl.classList.remove('sidebar-tick');
+                } else {
+                    tickEl.className = "fas fa-check sidebar-tick"; 
+                    tickEl.style.color = "#ccc";
+                    tickEl.classList.remove('sidebar-tick');
+                }
+            } else {
+                tickEl.style.display = 'none'; // Hide if not me
+            }
+        }
+    });
+}
+function loadContacts() {
+    db.ref(`user_chats/${currentUser}`).on("value", (snap) => {
+        const data = snap.val();
+        const list = document.getElementById("users");
+        
+        // Jika tidak ada data, kosongkan list
+        if(!data) {
+            list.innerHTML = ""; 
+            return;
+        }
+        
+        // PERBAIKAN SORTING: Urutkan dari Lama ke Baru (Ascending)
+        // Kemudian di renderContact kita akan memakai Prepend
+        // sehingga yang Baru (Terakhir) akan menjadi anak pertama (Paling Atas).
+        list.innerHTML = ""; 
+        
+        const ids = Object.keys(data);
+        ids.sort((a, b) => {
+            // Gunakan (timeA - timeB) agar Terakhir (Baru) ada di akhir array
+            // 0 ... Lama ... [Baru]
+            const timeA = data[a] ? (data[a].time || 0) : 0;
+            const timeB = data[b] ? (data[b].time || 0) : 0;
+            return timeA - timeB; 
+        });
+
+        // Pre-fetch semua data contact dulu biar tidak kosong saat render
+        const fetchPromises = ids.map(id => {
+            if (globalContacts[id]) return Promise.resolve();
+            const isGrp = id.startsWith("GROUP_");
+            const refPath = isGrp ? "groups/" + id : "users/" + id;
+            return db.ref(refPath).once("value", snap => {
+                if(snap.exists()) {
+                    globalContacts[id] = snap.val();
+                }
+            }).catch(err => {
+                console.error("Error fetching contact:", err);
+            });
+        });
+
+        // Tunggu semua data siap, lalu render satu per satu
+        Promise.all(fetchPromises).then(() => {
+            ids.forEach(id => {
+                renderContact(id, data[id]);
+            });
+        });
+    });
+
+    db.ref(`user_chats/${currentUser}`).on("child_removed", (snap) => {
+        const id = snap.key;
+        const el = document.getElementById(`contact-${id}`);
+        if(el) el.remove();
+    });
+}
+
+function fetchContactDetails(id) {
+    // Fungsi ini hampir tidak dipanggil di loadContacts utama karena kita pakai Promise.all di situ
+    // Tapi tetap diperlukan untuk event update lain
+    if (globalContacts[id]) return; 
+    const isGrp = id.startsWith("GROUP_");
+    const refPath = isGrp ? "groups/" + id : "users/" + id;
+    
+    db.ref(refPath).once("value", snap => {
+        const u = snap.val();
+        if(u) {
+            globalContacts[id] = u;
+        }
+    });
+}
+
+function renderContact(id, info) {
+    const list = document.getElementById("users");
+    const isGrp = id.startsWith("GROUP_");
+    
+    const sidebarInfo = info || {}; 
+    const u = globalContacts[id] || {};
+    
+    // Logic Nama & Foto (dengan fallback aman)
+    let displayName = u.name || u.username || id;
+    if (isGrp) displayName = u.name || id;
+    
+    const photo = u.photo || (isGrp ? 'https://cdn-icons-png.flaticon.com/512/615/615075.png' : 'https://cdn-icons-png.flaticon.com/512/149/149071.png');
+    
+    let msgPreview = sidebarInfo.lastMsg || '...';
+
+    let timeStr = "";
+    if(sidebarInfo.time) {
+        const d = new Date(sidebarInfo.time);
+        timeStr = d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0');
+    } else {
+        // Coba hydrate jika waktu hilang
+        setTimeout(() => hydrateContactLastMessage(id), 100);
+    }
+
+    const unreadCount = sidebarInfo.unread || 0;
+    // Generate Badge HTML
+    const badgeHtml = unreadCount > 0 ? `<div class="user-badge" id="badge-${id}">${unreadCount}</div>` : "";
+    
+    // UPDATE LOGIKA ONLINE STATUS: Hanya muncul jika aktif chat saat ini
+    const isActiveChat = (currentPartnerId === id);
+    const statusDotHtml = (!isGrp && u.online && isActiveChat) ? `<div class="status-dot" id="dot-${id}" style="display:block"></div>` : "";
+    
+    const tickHtml = (!isGrp) ? `<i id="tick-${id}" class="fas fa-check sidebar-tick"></i>` : "";
+    
+    // Template HTML (FIXED)
+    const htmlContent = `
+        <div class="avatar-wrapper">
+            <img src="${photo}">
+            ${statusDotHtml}
+            <!-- BADGE DIPINDAHKAN KE METARIGHT SEKARANG -->
+        </div>
+        <div class="user-info">
+            <div class="user-row-top">
+                <div class="name-container">
+                    <b>${displayName}</b>
+                </div>
+                <div class="meta-right-container">
+                    <span class="msg-time">${timeStr}</span>
+                    ${badgeHtml} 
+                    <!-- TIDAK ADA CENTANG DI SINI (HAPUS tickHtml DARI SINI) -->
+                </div>
+            </div>
+            <div class="user-row-bottom">
+                ${tickHtml}
+                <span id="preview-${id}">${msgPreview}</span>
+            </div>
+        </div>
+    `;
+
+    let div = document.getElementById(`contact-${id}`);
+    if (div) {
+        // Update jika elemen sudah ada
+        div.innerHTML = htmlContent;
+        // Prepend agar terbaru berada di atas
+        list.prepend(div); 
+    } else {
+        // Create new
+        div = document.createElement("div");
+        div.id = `contact-${id}`; 
+        div.className = `user`;
+        div.style.cursor = "pointer";
+        
+        // Event click utama
+        div.onclick = (e) => { 
+            if (e.target.tagName !== 'IMG' && !e.target.closest('.sidebar-meta')) {
+                openChat(id, photo, displayName, isGrp); 
+            }
+        };
+        
+        // Event Listener Context Menu
+        div.oncontextmenu = (e) => {
+            e.preventDefault();
+            e.stopPropagation(); 
+            showContactMenu(e, id);
+        };
+
+        // Event Listener Long Press (Mobile)
+        let pressTimer;
+        div.ontouchstart = () => {
+            pressTimer = setTimeout(() => {
+                showContactMenu({ target: div }, id);
+            }, 500);
+        };
+        div.ontouchend = () => clearTimeout(pressTimer);
+
+        div.innerHTML = htmlContent;
+        list.prepend(div);
+    }
+
+    // Logic Listener Typing & Online Status
+    if (!div.hasAttribute('data-listeners-active')) {
+        div.setAttribute('data-listeners-active', 'true');
+
+        if (!isGrp) {
+            const chatId = [currentUser, id].sort().join("_");
+            const typingRef = db.ref(`typing/${chatId}/${id}`);
+            typingRef.on('value', snap => {
+                const isTyping = snap.exists();
+                const statusEl = document.getElementById(`status-text-${id}`);
+                if(statusEl) {
+                    if (isTyping) {
+                        statusEl.innerText = "Mengetik...";
+                        statusEl.style.color = "var(--accent)";
+                        statusEl.style.display = "block";
+                    } else {
+                        statusEl.style.display = "none";
+                    }
+                }
+            });
+
+            const userRef = db.ref(`users/${id}`);
+            userRef.on('value', uSnap => {
+                const u = uSnap.val();
+                if(u) globalContacts[id] = u; 
+                const statusEl = document.getElementById(`status-text-${id}`);
+                const dotEl = document.getElementById(`dot-${id}`);
+                const isActive = (currentPartnerId === id); // Cek ulang status aktif
+                
+                if(u) {
+                    // Online Hanya jika aktif chat ini
+                    if(u.online && isActive) {
+                        if(dotEl) dotEl.style.display = "block";
+                        if(statusEl && !statusEl.innerText.includes("getik")) {
+                            statusEl.innerText = "";
+                            statusEl.style.display = "none";
+                            statusEl.style.height = "0px";
+                        }
+                    } else {
+                        if(dotEl) dotEl.style.display = "none";
+                    }
+                }
+            });
+            
+            checkMyLastMessageStatus(chatId, id);
+        }
+        
+        if(isGrp) {
+             checkMyLastMessageStatus(id, id);
+        }
+    }
+}
+
+function checkMyLastMessageStatus(chatId, partnerId) {
+    if(!chatId) return;
+    db.ref("chats/" + chatId).limitToLast(1).once("value", snapshot => {
+        if(snapshot.exists()) {
+            const msgs = snapshot.val();
+            const keys = Object.keys(msgs);
+            const lastKey = keys[0]; 
+            const lastMsg = msgs[lastKey];
+            
+            if(lastMsg.from === currentUser) {
+                updateSidebarTick(partnerId, lastMsg.seen);
+            } else {
+                const tickEl = document.getElementById(`tick-${partnerId}`);
+                if(tickEl) tickEl.style.display = 'none';
+            }
+        }
+    });
+}
+
+// --- CONTACT MENU LOGIC ---
+
+function showContactMenu(event, id) {
+    selectedContactId = id;
+    const menu = document.getElementById("contactMenu");
+    const isGrp = id.startsWith("GROUP_");
+
+    // Reset Menu Visibility (LOGIC SHARE PROFILE VS SHARE GROUP)
+    const profileItem = document.getElementById("menu-share-profile");
+    const groupItem = document.getElementById("menu-share-group");
+
+    if(isGrp) {
+        // Jika GROUP: Hide Share Profile, Show Share Group
+        if(profileItem) profileItem.style.display = "none";
+        if(groupItem) groupItem.style.display = "flex";
+    } else {
+        // Jika USER: Show Share Profile, Hide Share Group
+        if(profileItem) profileItem.style.display = "flex";
+        if(groupItem) groupItem.style.display = "none";
+    }
+    
+    // Reset Delete vs Leave visibility
+    const delMeItem = document.getElementById("menu-delete-me");
+    const delAllItem = document.getElementById("menu-delete-everyone");
+    const leaveGroupItem = document.getElementById("menu-leave-group");
+    
+    if(isGrp) {
+        // Hide Delete options for groups
+        if(delMeItem) delMeItem.style.display = 'none';
+        if(delAllItem) delAllItem.style.display = 'none';
+        if(leaveGroupItem) leaveGroupItem.style.display = 'flex';
+    } else {
+        // Show Delete options for users
+        if(delMeItem) delMeItem.style.display = 'flex';
+        if(delAllItem) delAllItem.style.display = 'flex';
+        if(leaveGroupItem) leaveGroupItem.style.display = 'none';
+    }
+    
+    let targetEl;
+    if(event.type === "touchstart") {
+        targetEl = event.target.closest('.user'); 
+    } else {
+        targetEl = event.target.closest('.user'); 
+    }
+    
+    if(targetEl) {
+        const rect = targetEl.getBoundingClientRect();
+        const isMobile = window.innerWidth <= 768;
+
+        let top = rect.top + (rect.height / 2);
+        let left = rect.right + 10;
+
+        // Boundary check
+        if (left + menu.offsetWidth > window.innerWidth) {
+            left = rect.left - menu.offsetWidth - 10;
+        }
+        if (top + menu.offsetHeight > window.innerHeight) {
+            top = window.innerHeight - menu.offsetHeight - 20;
+        }
+
+        menu.style.top = top + "px";
+        menu.style.left = left + "px";
+        menu.style.transform = "none";
+        menu.style.display = "block";
+    }
+
+    // NOTE: Removed reference to undefined canDeleteForEveryone here to prevent error
+}
+
+function closeContactMenu() {
+    document.getElementById("contactMenu").style.display = "none";
+}
+
+// --- SHARE PROFILE / GROUP LOGIC ---
+
+function openShareModal(type) {
+    // Tutup modal lain jika ada untuk mencegah bug tumpang tindih
+    document.getElementById("forwardModal").style.display = "none";
+    
+    shareType = type; 
+    const sourceId = selectedContactId;
+    closeContactMenu();
+    
+    if(!sourceId) return;
+
+    const modal = document.getElementById("shareModal");
+    const headerTitle = document.querySelector("#shareModalHeader h3");
+    const list = document.getElementById("shareList");
+    list.innerHTML = "";
+    modal.style.display = "flex";
+
+    // Judul lebih spesifik agar tidak bingung dengan "Teruskan"
+    if (type === 'profile') {
+        headerTitle.innerText = "Bagikan Kontak ke..."; 
+    } else {
+        headerTitle.innerText = "Undang ke Grup...";
+    }
+
+    db.ref("user_chats/" + currentUser).once("value", snap => {
+        const data = snap.val();
+        if(!data) return;
+        const ids = Object.keys(data);
+        
+        ids.forEach(id => {
+            if(id === sourceId) return; 
+            
+            const isGrp = id.startsWith("GROUP_");
+            let u = globalContacts[id];
+            let name = u?.name || u?.username || id;
+            let photo = u?.photo || (isGrp ? "https://cdn-icons-png.flaticon.com/512/615/615075.png" : "https://cdn-icons-png.flaticon.com/512/149/149071.png");
+
+            if(!u) {
+                db.ref(isGrp ? "groups/"+id : "users/"+id).once("value", s => {
+                    const val = s.val();
+                    if(val) {
+                        name = val.name || val.username || id;
+                        photo = val.photo || photo;
+                        addShareItem(id, name, photo, sourceId, type);
+                    }
+                });
+            } else {
+                addShareItem(id, name, photo, sourceId, type);
+            }
+        });
+    });
+}
+
+function addShareItem(id, name, photo, sourceId, type) {
+    const list = document.getElementById("shareList");
+    const el = document.createElement("div");
+    el.className = "modal-item";
+    el.innerHTML = `
+        <img src="${photo}" class="item-avatar">
+        <div class="item-name">${name}</div>
+    `;
+    el.onclick = () => {
+        // PERBAIKAN: Hapus argumen 'photo' agar sesuai dengan definisi fungsi
+        executeShare(id, name, sourceId, type);
+    };
+    list.appendChild(el);
+}
+
+function closeShareModal() {
+    document.getElementById("shareModal").style.display = "none";
+}
+
+function executeShare(targetId, targetName, sourceId, type) {
+    // Source ID is one being shared
+    const sharedData = globalContacts[sourceId];
+    // Double check source data if missing
+    if(!sharedData) {
+        const isSrcGrp = sourceId.startsWith("GROUP_");
+        db.ref(isSrcGrp ? "groups/"+sourceId : "users/"+sourceId).once("value", snap => {
+            const val = snap.val();
+            if(val) executeShare(targetId, targetName, sourceId, type);
+        });
+        return;
+    }
+
+    const isSharedGrp = sourceId.startsWith("GROUP_");
+    const sharedName = sharedData.name || sharedData.username || sourceId;
+    const sharedPhoto = sharedData.photo || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    
+    // Format Message
+    let prefix, textBody;
+    if(isSharedGrp) {
+        // GROUP_CARD:Name:Photo:ID
+        prefix = "GROUP_CARD:";
+        textBody = `${sharedName}::${sharedPhoto}::${sourceId}`;
+    } else {
+        // PROFILE_CARD:Name:Photo:ID
+        prefix = "PROFILE_CARD:";
+        textBody = `${sharedName}::${sharedPhoto}::${sourceId}`;
+    }
+
+    const msgObj = {
+        from: currentUser,
+        text: prefix + encryptData(textBody),
+        time: Date.now(),
+        seen: false
+    };
+
+    // Push to target chat
+    const targetIsGrp = targetId.startsWith("GROUP_");
+    const targetChatId = targetIsGrp ? targetId : [currentUser, targetId].sort().join("_");
+
+    db.ref("chats/" + targetChatId).push(msgObj).then(() => {
+        // Update sidebar for sender
+        updateLastMsg(targetId, isSharedGrp ? "Undang Grup" : "Kirim Profil", Date.now());
+        
+        showToast(`Terkirim ke ${targetName}`);
+        closeShareModal();
+    });
+}
+
+function deleteContactMenu(scope) {
+    const id = selectedContactId;
+    if(!id) return;
+    closeContactMenu();
+
+    if (scope === 'me') {
+        db.ref(`user_chats/${currentUser}/${id}`).remove().then(() => {
+            showToast("Kontak dihapus");
+        });
+    } else if (scope === 'everyone') {
+        const isGrp = id.startsWith("GROUP_");
+        if(isGrp) {
+            // Only allow leave group if user is member
+            db.ref(`group_members/${id}/${currentUser}`).once("value", snap => {
+                if(snap.exists()) {
+                    db.ref(`user_chats/${currentUser}/${id}`).remove(); // Leave sidebar
+                    db.ref(`group_members/${id}/${currentUser}`).remove(); // Leave group DB
+                    showToast("Anda telah keluar dari grup");
+                } else {
+                    showToast("Anda bukan anggota grup ini");
+                }
+            });
+        } else {
+            // Delete User 1-on-1
+            db.ref(`user_chats/${currentUser}/${id}`).remove();
+            db.ref(`user_chats/${id}/${currentUser}`).remove();
+            
+            const chatId = [currentUser, id].sort().join("_");
+            db.ref(`chats/${chatId}`).remove(); // Optional: Delete all chats
+            showToast("Dihapus untuk semua");
+        }
+    }
+}
+
+function leaveGroup() {
+    const id = selectedContactId;
+    if(!id) return;
+    closeContactMenu();
+
+    db.ref(`group_members/${id}/${currentUser}`).once("value", snap => {
+        if(snap.exists()) {
+            // Send System Message BEFORE removing
+            const myName = globalContacts[currentUser]?.username || currentUser;
+            const sysText = `TYPE:SYSTEM:SYSTEM:LEAVE:${myName}`;
+            
+            const chatId = id;
+            db.ref(`chats/${chatId}`).push({
+                from: "SYSTEM",
+                text: sysText, // Not encrypted
+                time: Date.now()
+            }).then(() => {
+                db.ref(`user_chats/${currentUser}/${id}`).remove();
+                db.ref(`group_members/${id}/${currentUser}`).remove();
+                showToast("Anda telah keluar dari grup");
+                if(currentChatId === id) closeChat();
+            });
+        } else {
+            showToast("Gagal keluar grup");
+        }
+    });
+}
+
+function openChat(pId, photo, name, grp = false) {
+    if (activeChatRef) { activeChatRef.off(); }
+    currentPartnerId = pId;
+    isGroup = grp;
+    currentChatId = grp ? pId : [currentUser, pId].sort().join("_");
+    activeChatRef = db.ref("chats/" + currentChatId).limitToLast(50);
+    
+    viewOnceIgnoredKey = null; 
+    selectedMsgId = null; 
+    selectedMsgData = null;
+    
+    db.ref(`user_chats/${currentUser}/${pId}`).update({ unread: 0 });
+    const badge = document.getElementById(`badge-${pId}`);
+    if(badge) badge.remove();
+    
+    document.getElementById("emojiPanel").style.display = "none";
+    document.getElementById("welcome-screen").style.display = "none"; 
+    document.getElementById("chat-header-area").style.display = "flex";
+    document.getElementById("msgs").style.display = "flex";
+    document.getElementById("inputArea").style.display = "block";
+
+    if (window.innerWidth <= 768) {
+        document.getElementById("sidebar").classList.add("hidden");
+    }
+
+    const chatNameEl = document.getElementById("chatName");
+    if(chatNameEl) chatNameEl.innerText = name;
+    const chatAvatarEl = document.getElementById("chatAvatar");
+    if(chatAvatarEl) chatAvatarEl.src = photo || (grp ? "https://cdn-icons-png.flaticon.com/512/615/615075.png" : "https://cdn-icons-png.flaticon.com/512/149/149071.png");
+
+    const statusEl = document.getElementById("chatStatus");
+    const headerDot = document.getElementById("header-status-dot");
+    
+    function setStatus(text, color, isOnlineBool) {
+        if(statusEl.innerText !== text) {
+            statusEl.classList.remove("status-anim");
+            void statusEl.offsetWidth; 
+            statusEl.innerHTML = text; // Use innerHTML for icon support
+            statusEl.style.color = color;
+            statusEl.classList.add("status-anim");
+        }
+        if(isOnlineBool) {
+            if(headerDot) headerDot.style.display = "block";
+        } else {
+            if(headerDot) headerDot.style.display = "none";
+        }
+    }
+
+    if(!grp) {
+        const onlineRef = db.ref(`users/${pId}/online`);
+        onlineRef.on('value', snap => {
+            const isOnline = snap.val();
+            if(isOnline) {
+                setStatus(`<i class="fas fa-circle" style="font-size:8px; color:var(--online);"></i> Online`, "var(--online)", true);
+            } else {
+                setStatus("", "#888", false); 
+                db.ref(`users/${pId}/lastSeen`).once('value', s => {
+                    if(!snap.val()) { 
+                        const ls = s.val();
+                        setStatus(ls ? formatLastSeen(ls) : "Offline", "#888", false);
+                    }
+                });
+            }
+        });
+
+        const lastSeenRef = db.ref(`users/${pId}/lastSeen`);
+        lastSeenRef.on('value', snap => {
+            const isOnline = (statusEl.innerText.includes("Online"));
+            if(!isOnline) {
+                const ls = snap.val();
+                setStatus(ls ? formatLastSeen(ls) : "", "#888", false);
+            }
+        });
+        
+        const typingRef = db.ref(`typing/${currentChatId}/${pId}`);
+        typingRef.on('value', snap => {
+             const isTyping = snap.exists();
+             if(isTyping) {
+                 setStatus("Sedang mengetik...", "var(--accent)", false);
+             } else {
+                 onlineRef.once('value');
+             }
+        });
+    } else {
+        statusEl.innerText = "Grup";
+        statusEl.style.color = "#888";
+        if(headerDot) headerDot.style.display = "none";
+    }
+
+    const msgsDiv = document.getElementById("msgs");
+    msgsDiv.innerHTML = "";
+
+    activeChatRef.on("child_added", snap => {
+        const msgData = snap.val();
+        renderMessage(msgData, snap.key);
+        msgsDiv.scrollTop = msgsDiv.scrollHeight;
+        
+        if(msgData.from !== currentUser && !msgData.seen) { 
+            db.ref("chats/" + currentChatId + "/" + snap.key).update({ seen: true }); 
+        }
+        
+        if(msgData.from === currentUser) {
+            updateSidebarTick(pId, msgData.seen);
+        }
+    });
+
+    activeChatRef.on("child_changed", snap => {
+        const key = snap.key;
+        if (key === viewOnceIgnoredKey) {
+            viewOnceIgnoredKey = null;
+            return; 
+        }
+        const msgData = snap.val();
+        
+        const oldMsg = document.getElementById("msg-wrap-" + key);
+        if(oldMsg) { oldMsg.remove(); renderMessage(msgData, key); }
+        
+        if(msgData.from === currentUser && msgData.seen !== undefined) {
+            updateSidebarTick(pId, msgData.seen);
+            
+            const metaStatus = document.getElementById(`meta-status-${key}`);
+            if(metaStatus) {
+                if(msgData.seen) {
+                    metaStatus.className = "fas fa-check-double msg-status read";
+                } else {
+                    metaStatus.className = "fas fa-check msg-status";
+                }
+            }
+        }
+    });
+}
+
+function closeChat() {
+    if (activeChatRef) {
+        activeChatRef.off();
+        activeChatRef = null;
+    }
+    currentChatId = null;
+    currentPartnerId = null;
+    isGroup = false;
+
+    if (window.innerWidth <= 768) {
+        document.getElementById("sidebar").classList.remove("hidden");
+    }
+
+    document.getElementById("welcome-screen").style.display = "flex";
+    document.getElementById("chat-header-area").style.display = "none";
+    document.getElementById("msgs").style.display = "none";
+    document.getElementById("inputArea").style.display = "none";
+    
+    document.getElementById("msgs").innerHTML = "";
+}
+
+/* --- SWIPE & MENU LOGIC --- */
+let touchStartX = 0;
+let touchEndX = 0;
+
+function renderMessage(m, key) {
+    const msgsDiv = document.getElementById("msgs");
+    if (!msgsDiv) return;
+    if (document.getElementById("msg-wrap-" + key)) return;
+    
+    const isMe = m.from === currentUser;
+    const wrap = document.createElement("div");
+    wrap.className = `msg-wrap ${isMe ? 'me' : 'you'}`;
+    wrap.id = "msg-wrap-" + key;
+
+    // Check for System Message
+    if (m.text && m.text.startsWith("TYPE:SYSTEM:")) {
+        wrap.className = "msg-wrap system";
+        // Extract system message text
+        // Format: TYPE:SYSTEM:TYPE:LEAVE:Name
+        const parts = m.text.split(":");
+        const sysType = parts[2];
+        const actor = parts[3] || "Seseorang";
+        
+        let sysText = "";
+        if(sysType === "LEAVE") sysText = `${actor} telah keluar dari grup`;
+        else if(sysType === "ADD") sysText = `${actor} telah ditambahkan ke grup`;
+        else sysText = "Pesan sistem";
+
+        wrap.innerHTML = `<div class="msg">${sysText}</div>`;
+        msgsDiv.appendChild(wrap);
+        msgsDiv.scrollTop = msgsDiv.scrollHeight;
+        return;
+    }
+
+    // Add Touch Listeners for Swipe
+    wrap.addEventListener('touchstart', e => {
+        touchStartX = e.touches[0].clientX;
+        // Close all menus on new touch
+        closeAllMenus();
+        wrap.style.transition = 'none';
+    }, {passive: true});
+
+    wrap.addEventListener('touchmove', e => {
+        const touchCurrentX = e.touches[0].clientX;
+        const diff = touchCurrentX - touchStartX;
+        if(Math.abs(diff) < 50) {
+            wrap.style.transform = `translateX(${diff}px)`;
+            wrap.style.opacity =1 - Math.abs(diff)/200;
+        }
+    }, {passive: true});
+
+    wrap.addEventListener('touchend', e => {
+        const touchEnd = e.changedTouches[0].clientX;
+        const diff = touchEnd - touchStartX;
+        
+        wrap.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+        wrap.style.transform = 'translateX(0)';
+        wrap.style.opacity = 1;
+
+        // Swipe Left or Right -> Trigger Reply
+        if (Math.abs(diff) > 50) {
+            handleReply(); 
+        }
+    });
+
+    // Long Press for Menu
+    let pressTimer;
+    wrap.addEventListener('touchstart', () => {
+        pressTimer = setTimeout(() => {
+            showContextMenu(key, m);
+        }, 500);
+    }, {passive: true});
+    
+    wrap.addEventListener('touchend', () => clearTimeout(pressTimer));
+    wrap.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
+    // Mouse Right Click for Menu
+    wrap.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showContextMenu(key, m);
+    });
+
+    // Mouse Long Press for Desktop
+    wrap.addEventListener('mousedown', () => {
+        pressTimer = setTimeout(() => {
+            showContextMenu(key, m);
+        }, 500);
+    });
+    wrap.addEventListener('mouseup', () => clearTimeout(pressTimer));
+
+    let content = "";
+    if (m.deleted) {
+        content = `<div class="msg deleted">🚫 Pesan telah dihapus</div>`;
+    } else {
+        // Check for PROFILE CARD
+        if (m.text.startsWith("PROFILE_CARD:")) {
+            try {
+                const data = decryptData(m.text.replace("PROFILE_CARD:", "")).split("::");
+                const pName = data[0];
+                const pPhoto = data[1];
+                const pId = data[2];
+                content = `
+                    <div class="shared-card">
+                        <img src="${pPhoto}" class="shared-card-img">
+                        <div class="shared-card-info">
+                            <div class="shared-card-label">Kontak Tersimpan</div>
+                            <b class="shared-card-name">${pName}</b>
+                        </div>
+                        <button class="btn-join-chat" onclick="joinSharedChat('${pId}')">Chat</button>
+                    </div>
+                `;
+            } catch(e) { content = `<span>Card Profil Error</span>`; }
+        }
+        // Check for GROUP CARD
+        else if (m.text.startsWith("GROUP_CARD:")) {
+            try {
+                const data = decryptData(m.text.replace("GROUP_CARD:", "")).split("::");
+                const gName = data[0];
+                const gPhoto = data[1];
+                const gId = data[2];
+                content = `
+                    <div class="shared-card">
+                        <img src="${gPhoto}" class="shared-card-img">
+                        <div class="shared-card-info">
+                            <div class="shared-card-label">Grup Tersimpan</div>
+                            <b class="shared-card-name">${gName}</b>
+                        </div>
+                        <button class="btn-join-group" onclick="joinSharedChat('${gId}')">Bergabung</button>
+                    </div>
+                `;
+            } catch(e) { content = `<span>Card Grup Error</span>`; }
+        }
+        // Normal Messages
+        else {
+            let textBody = "";
+            try {
+                if (m.text.startsWith("IMG:")) {
+                    let url = decryptData(m.text.replace("IMG:", ""));
+                    textBody = `<img src="${url}" onclick="openLightbox('${url}')" oncontextmenu="return false;">`;
+                } 
+                else if (m.text.startsWith("VO:IMG:")) {
+                    if (isMe) {
+                        let url = decryptData(m.text.replace("VO:IMG:", ""));
+                        textBody = `
+                            <div style="position:relative;">
+                                <img src="${url}" onclick="openLightbox('${url}')" oncontextmenu="return false;">
+                                <div class="vo-indicator"><i class="far fa-eye-slash"></i> Sekali Lihat</div>
+                            </div>`;
+                    } else {
+                        let url = decryptData(m.text.replace("VO:IMG:", ""));
+                        textBody = `
+                            <div style="position:relative;">
+                                <img src="${url}" onclick="openViewOnceLightbox('${url}', '${key}')" style="filter: blur(15px);" oncontextmenu="return false;">
+                                <div class="vo-indicator"><i class="fas fa-lock"></i> Terkunci</div>
+                            </div>`;
+                    }
+                }
+                else if (m.text.startsWith("TYPE:VN:")) {
+                    const url = decryptData(m.text.replace("TYPE:VN:", ""));
+                    textBody = `<audio src="${url}" controls style="max-width:200px; height:30px;"></audio>`;
+                } 
+                else if (m.text.startsWith("CALL_JITSI:")) {
+                    // Call logic fixed: Decrypt params
+                    const decrypted = decryptData(m.text.replace("CALL_JITSI:", ""));
+                    const p = decrypted.split(":");
+                    const isVideo = p[0] === 'video';
+                    const roomName = p[1]; // Actually encrypted: type:room
+                    
+                    const iconClass = isVideo ? 'fa-video' : 'fa-phone-alt';
+                    const typeText = isVideo ? 'Panggilan Video' : 'Panggilan Suara';
+                    const iconBoxClass = isVideo ? 'call-icon-box video' : 'call-icon-box';
+
+                    textBody = `
+                        <div class="call-msg" onclick="joinVideoCall('${p[1]}', '${p[0]}')">
+                            <div class="${iconBoxClass}"><i class="fas ${iconClass}"></i></div>
+                            <div class="call-info"><span class="call-title">${typeText}</span><span class="call-sub">Ketuk untuk gabung</span></div>
+                        </div>`;
+                }
+                else {
+                    textBody = `<span>${decryptData(m.text)}</span>`;
+                }
+            } catch (e) { 
+                textBody = `<span style="color:red;">Gagal dekripsi</span>`; 
+            }
+
+            if (m.replyTo) {
+                const replyText = m.replyTo.text.startsWith("IMG:") ? "📷 Foto" : decryptData(m.replyTo.text);
+                textBody = `
+                    <div class="reply-bubble">
+                        <span class="reply-sender">${m.replyTo.user === currentUser ? 'Anda' : m.replyTo.user}</span>
+                        <span class="reply-text">${replyText}</span>
+                    </div>
+                ` + textBody;
+            }
+
+            const editedLabel = m.edited ? `<small style="opacity:0.5; font-size:9px; margin-left:4px;">(diedit)</small>` : "";
+            content = `<div class="msg">${textBody}${editedLabel}</div>`;
+        }
+    }
+
+    const time = new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    let statusIcons = "";
+    if (isMe && !m.deleted) {
+        const tickClass = m.seen ? "fas fa-check-double msg-status read" : "fas fa-check msg-status";
+        statusIcons = `<i id="meta-status-${key}" class="${tickClass}"></i>`;
+    }
+    
+    const senderName = (isGroup && !isMe && !m.deleted) ? `<div style="font-size:10px; font-weight:bold; color:var(--accent); margin-bottom:2px;">${m.from}</div>` : "";
+    wrap.innerHTML = `
+        ${senderName}
+        ${content}
+        <div class="msg-meta">
+            <span>${time}</span>
+            ${statusIcons}
+        </div>`;
+    
+    msgsDiv.appendChild(wrap);
+    msgsDiv.scrollTop = msgsDiv.scrollHeight; 
+}
+
+// --- JOIN SHARED CHAT LOGIC (UPDATED) ---
+function joinSharedChat(targetId, explicitName = null, explicitPhoto = null) {
+    // Jika grup, pastikan kita ada di list grup
+    const isGrp = targetId.startsWith("GROUP_");
+    
+    // LOGIKA PERBAIKAN:
+    // 1. Gunakan explicitName dan explicitPhoto (dari kartu yang diklik) jika ada.
+    // 2. Jika tidak ada, ambil dari globalContacts.
+    // 3. Jika kosong, gunakan default.
+    
+    const finalName = explicitName || globalContacts[targetId]?.name || globalContacts[targetId]?.username || (isGrp ? "Grup" : targetId);
+    const finalPhoto = explicitPhoto || globalContacts[targetId]?.photo || (isGrp ? 'https://cdn-icons-png.flaticon.com/512/615/615075.png' : 'https://cdn-icons-png.flaticon.com/512/149/149071.png');
+
+    // Update cache globalContacts agar data sinkron
+    if(!globalContacts[targetId]) {
+        globalContacts[targetId] = {
+            name: finalName,
+            photo: finalPhoto
+        };
+    }
+
+    // 1. Tambahkan ke user_chats jika belum ada.
+    // Listener 'loadContacts' akan mendeteksi perubahan ini dan merender sidebar,
+    // serta memulai listener unread (realtime).
+    db.ref(`user_chats/${currentUser}/${targetId}`).once("value", snap => {
+        if(!snap.exists()) {
+            db.ref(`user_chats/${currentUser}/${targetId}`).set({
+                lastMsg: isGrp ? "Grup Baru" : "Kontak Baru",
+                time: Date.now()
+            });
+        }
+        
+        // 2. Buka Chat dengan data yang sudah dipastikan ada
+        openChat(targetId, finalPhoto, finalName, isGrp);
+    });
+}
+
+// --- MENU & ACTIONS ---
+
+function showContextMenu(key, data) {
+    selectedMsgId = key;
+    selectedMsgData = data;
+    
+    const menu = document.getElementById("msgMenu");
+    
+    const isMe = data.from === currentUser;
+    const timeDiff = Date.now() - data.time;
+    const canDeleteForEveryone = isMe && timeDiff < 86400000; 
+    
+    // Position Menu
+    const targetEl = document.getElementById("msg-wrap-" + key);
+    
+    if(targetEl) {
+        const rect = targetEl.getBoundingClientRect();
+        const isMobile = window.innerWidth <= 768;
+        
+        let top = rect.top + (rect.height / 2) - (menu.offsetHeight / 2);
+        let left;
+        
+        if (isMobile) {
+            if (data.from === currentUser) { 
+                left = rect.left - menu.offsetWidth - 10;
+            } else { 
+                left = rect.right + 10;
+            }
+            if (left < 10) left = 10; 
+            if (left + menu.offsetWidth > window.innerWidth) left = window.innerWidth - menu.offsetWidth - 10;
+        } else {
+            left = "50%";
+            top = "50%";
+            menu.style.transform = "translate(-50%, -50%)";
+            menu.style.left = left;
+            menu.style.top = top;
+        }
+        
+        if (isMobile) {
+            menu.style.transform = 'none';
+            menu.style.left = left + 'px';
+            menu.style.top = top + 'px';
+        }
+        
+        menu.style.display = "block";
+    }
+
+    const delEveryoneBtn = document.getElementById("btnDeleteEveryone");
+    if(delEveryoneBtn) delEveryoneBtn.style.display = canDeleteForEveryone ? "block" : "none";
+}
+
+function closeContextMenu() {
+    document.getElementById("msgMenu").style.display = 'none';
+}
+
+function closeAllMenus() {
+    closeContextMenu();
+    closeContactMenu();
+}
+
+function handleReply() {
+    closeContextMenu();
+    if (!selectedMsgData) return;
+    
+    let previewText = "";
+    if(selectedMsgData.text.startsWith("IMG:") || selectedMsgData.text.startsWith("VO:IMG:")) {
+        previewText = "📷 Foto";
+    } else if (selectedMsgData.text.startsWith("TYPE:VN:")) {
+        previewText = "🎤 Pesan Suara";
+    } else {
+        previewText = decryptData(selectedMsgData.text);
+    }
+
+    replyData = { 
+        id: selectedMsgId, 
+        user: selectedMsgData.from, 
+        text: selectedMsgData.text,
+        type: selectedMsgData.text
+    };
+    
+    document.getElementById("reply-preview").style.display = "block";
+    document.getElementById("reply-user").innerText = (replyData.user === currentUser) ? "Anda" : replyData.user;
+    document.getElementById("reply-text").innerText = previewText;
+    document.getElementById("text").focus();
+}
+
+function cancelReply() { 
+    replyData = null; 
+    document.getElementById("reply-preview").style.display = "none"; 
+}
+
+function handleForward() {
+    closeContextMenu();
+    openForwardModal();
+}
+
+function openForwardModal() {
+    // Tutup modal share jika ada
+    document.getElementById("shareModal").style.display = "none";
+
+    const modal = document.getElementById("forwardModal");
+    const list = document.getElementById("forwardList");
+    const headerTitle = document.querySelector("#forwardModalHeader h3");
+    list.innerHTML = "";
+    modal.style.display = "flex";
+    
+    // Judul lebih spesifik
+    headerTitle.innerText = "Teruskan Pesan ke...";
+
+    if(!selectedMsgData) return;
+
+    const ids = Object.keys(globalContacts);
+    ids.forEach(id => {
+        const u = globalContacts[id];
+        if(!u) return;
+        const isGrp = id.startsWith("GROUP_");
+        const name = u.name || u.username || id;
+        const photo = u.photo || (isGrp ? "https://cdn-icons-png.flaticon.com/512/615/615075.png" : "https://cdn-icons-png.flaticon.com/512/149/149071.png");
+
+        const el = document.createElement("div");
+        el.className = "modal-item";
+        el.innerHTML = `
+            <img src="${photo}" class="item-avatar">
+            <div class="item-name">${name}</div>
+        `;
+        el.onclick = () => {
+            executeForward(id, name);
+        };
+        list.appendChild(el);
+    });
+}
+
+function closeForwardModal() {
+    document.getElementById("forwardModal").style.display = "none";
+}
+
+function executeForward(targetId, targetName) {
+    let finalText = selectedMsgData.text;
+    let msgType = "text";
+    
+    if(finalText.startsWith("IMG:") || finalText.startsWith("VO:IMG:")) msgType = "image";
+    else if(finalText.startsWith("TYPE:VN:")) msgType = "audio";
+
+    const isGrp = targetId.startsWith("GROUP_");
+    const targetChatId = isGrp ? targetId : [currentUser, targetId].sort().join("_");
+
+    const pushData = {
+        from: currentUser,
+        text: finalText,
+        time: Date.now(),
+        seen: false,
+        forwarded: true 
+    };
+
+    db.ref("chats/" + targetChatId).push(pushData).then(() => {
+        let preview = "";
+        if(msgType === "image") preview = "📷 Foto";
+        else if(msgType === "audio") preview = "🎤 Pesan Suara";
+        else preview = decryptData(finalText);
+        
+        updateLastMsg(targetId, preview, Date.now());
+
+        db.ref(`user_chats/${targetId}/${currentUser}`).update({
+            lastMsg: "📨 Pesan diteruskan",
+            time: Date.now(),
+            unread: 1
+        });
+
+        showToast(`Diteruskan ke ${targetName}`);
+        closeForwardModal();
+    });
+}
+
+function handleCopy() { 
+    closeContextMenu();
+    let txt = "";
+    try {
+        if(selectedMsgData.text.startsWith("IMG:") || selectedMsgData.text.startsWith("VO:IMG:")) txt = "[Gambar]";
+        else if(selectedMsgData.text.startsWith("TYPE:VN:")) txt = "[Pesan Suara]";
+        else txt = decryptData(selectedMsgData.text);
+    } catch(e) { txt = selectedMsgData.text; }
+    
+    navigator.clipboard.writeText(txt);
+    showToast("Disalin!");
+}
+
+function handleEdit() {
+    closeContextMenu();
+    isEditing = true;
+    const textInput = document.getElementById("text");
+    
+    if(selectedMsgData.text.startsWith("IMG:") || selectedMsgData.text.startsWith("TYPE:VN:") || selectedMsgData.text.startsWith("VO:IMG:") || selectedMsgData.text.startsWith("CALL_JITSI:") || selectedMsgData.text.startsWith("PROFILE_CARD:") || selectedMsgData.text.startsWith("GROUP_CARD:")) {
+        showToast("Hanya teks yang bisa diedit");
+        return;
+    }
+
+    textInput.value = decryptData(selectedMsgData.text);
+    textInput.focus();
+    showToast("Mode Edit Aktif");
+}
+
+function handleDelete() {
+    closeContextMenu(); 
+    const now = Date.now();
+    const isMe = selectedMsgData.from === currentUser; 
+    const canDeleteForEveryone = isMe && (now - selectedMsgData.time < 172800000);
+    
+    const sheet = document.getElementById("deleteSheet");
+    const btnDelEveryone = document.getElementById("btnDeleteEveryone");
+    
+    btnDelEveryone.style.display = canDeleteForEveryone ? "block" : "none";
+    sheet.style.display = "flex";
+}
+
+function closeDeleteSheet() { document.getElementById("deleteSheet").style.display = "none"; }
+
+function confirmDeleteEveryone() {
+    db.ref(`chats/${currentChatId}/${selectedMsgId}`).update({ 
+        deleted: true, 
+        text: encryptData("🚫 Pesan ini telah dihapus"),
+        replyTo: null 
+    });
+    closeDeleteSheet();
+    showToast("Dihapus untuk semua");
+    
+    const el = document.getElementById("msg-wrap-" + selectedMsgId);
+    if(el) {
+        const msgBubble = el.querySelector(".msg");
+        if(msgBubble) msgBubble.innerText = "🚫 Pesan ini telah dihapus";
+    }
+}
+
+function confirmDeleteMe() {
+    const el = document.getElementById("msg-wrap-" + selectedMsgId);
+    if(el) el.remove();
+    closeDeleteSheet();
+    showToast("Dihapus untuk Anda");
+}
+
+/* --- GLOBAL CLICK HANDLER (Auto Close Menus) --- */
+window.addEventListener('click', (e) => {
+    const msgMenu = document.getElementById("msgMenu");
+    const contactMenu = document.getElementById("contactMenu");
+    
+    if(msgMenu.style.display === 'block') {
+        if (!e.target.closest('#msgMenu')) {
+            closeContextMenu();
+        }
+    }
+    
+    if(contactMenu.style.display === 'block') {
+        if (!e.target.closest('#contactMenu')) {
+            closeContactMenu();
+        }
+    }
+});
+
+/* --- UTILS --- */
+
+function openLightbox(url) { 
+    document.getElementById("imageLightbox").style.display = 'flex'; 
+    document.getElementById("lightboxImg").src = url; 
+    document.getElementById("lightboxVoOverlay").classList.add("hidden");
+}
+
+function openViewOnceLightbox(url, key) {
+    document.getElementById("imageLightbox").style.display = 'flex'; 
+    document.getElementById("lightboxImg").src = url;
+    const overlay = document.getElementById("lightboxVoOverlay");
+    overlay.classList.remove("hidden");
+    currentViewOnceKey = key;
+    if(viewOnceTimer) clearTimeout(viewOnceTimer);
+}
+
+function handleVoClick() {
+    document.getElementById("lightboxVoOverlay").classList.add("hidden");
+    if(currentViewOnceKey) {
+        viewOnceTimer = setTimeout(() => {
+            markViewOnceAsSeen(currentViewOnceKey);
+        }, 5000);
+    }
+}
+
+function markViewOnceAsSeen(key) {
+    if(!currentChatId || !key) return;
+    closeLightbox();
+    db.ref(`chats/${currentChatId}/${key}`).update({
+        seen: true,
+        text: encryptData("🚫 Foto ini sudah dilihat sekali"),
+        deleted: true 
+    });
+    showToast("Foto sekali lihat dibaca");
+}
+
+function closeLightbox() { 
+    document.getElementById("imageLightbox").style.display = 'none'; 
+    document.getElementById("lightboxImg").src = ''; 
+    document.getElementById("lightboxVoOverlay").classList.add("hidden");
+    if(viewOnceTimer) { clearTimeout(viewOnceTimer); viewOnceTimer = null; }
+    currentViewOnceKey = null;
+}
+
+function setupTypingListener() {
+    const input = document.getElementById("text");
+    if(!input) return;
+    input.addEventListener("input", () => {
+        if(!currentChatId) return;
+        const myDisplayName = document.getElementById("myName").innerText;
+        db.ref(`typing/${currentChatId}/${currentUser}`).set(myDisplayName);
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            db.ref(`typing/${currentChatId}/${currentUser}`).remove();
+        },2000);
+    });
+}
+
+async function send() {
+    const textInput = document.getElementById("text");
+    const val = textInput.value.trim();
+    if (!currentChatId) return; 
+    
+    if (pendingImageBase64) {
+        const prefix = isViewOnceEnabled ? "VO:IMG:" : "IMG:";
+        const msgObj = { 
+            from: currentUser, 
+            text: prefix + encryptData(pendingImageBase64), 
+            time: Date.now(), 
+            seen: false 
+        };
+        if (isViewOnceEnabled) msgObj.viewOnce = true;
+        if (replyData) msgObj.replyTo = replyData;
+        
+        db.ref("chats/" + currentChatId).push(msgObj).then(() => { 
+            updateLastMsg(currentPartnerId, "📷 Foto", Date.now());
+            showToast("Gambar terkirim!"); 
+            cancelSendImage(); 
+        });
+        return;
+    }
+
+    if (vnBlob) {
+        showToast("Mengirim VN...");
+        const reader = new FileReader();
+        reader.readAsDataURL(vnBlob);
+        reader.onloadend = function() {
+            const encryptedVN = "TYPE:VN:" + encryptData(reader.result);
+            const msgObj = { 
+                from: currentUser, 
+                text: encryptedVN, 
+                time: Date.now(), 
+                seen: false 
+            };
+            if (replyData) msgObj.replyTo = replyData;
+            db.ref("chats/" + currentChatId).push(msgObj).then(() => {
+                updateLastMsg(currentPartnerId, "🎤 Pesan Suara", Date.now());
+                showToast("VN Terkirim!");
+            });
+            vnBlob = null; 
+            textInput.value = "";
+            cancelReply();
+        };
+        return;
+    }
+
+    if (isEditing) {
+        if (!val) return;
+        db.ref(`chats/${currentChatId}/${selectedMsgId}`).update({
+            text: encryptData(val),
+            edited: true
+        }).then(() => {
+            isEditing = false; 
+            textInput.value = "";
+            showToast("Pesan diperbarui");
+        });
+    } 
+    else {
+        if (!val) return;
+        const msgObj = {
+            from: currentUser, 
+            text: encryptData(val), 
+            time: Date.now(), 
+            seen: false 
+        };
+        if (replyData) msgObj.replyTo = replyData;
+        db.ref("chats/" + currentChatId).push(msgObj).then(() => { 
+            updateLastMsg(currentPartnerId, val, Date.now());
+            textInput.value = ""; 
+            cancelReply(); 
+        });
+    }
+    db.ref(`typing/${currentChatId}/${currentUser}`).remove();
+}
+
+/* PERBAIKAN LOGIC UNREAD MESSAGE (FIXED) */
+/* Fungsi ini sekarang menangani penambahan unread untuk penerima secara otomatis */
+function updateLastMsg(partnerId, msg, time) {
+    const isGrp = partnerId.startsWith("GROUP_");
+
+    // 1. Update Sender (Saya): Reset unread menjadi 0, update preview pesan terakhir
+    db.ref(`user_chats/${currentUser}/${partnerId}`).update({
+        lastMsg: msg,
+        time: time,
+        unread: 0 
+    });
+
+    // 2. Update Receiver (Teman): Increment unread, update preview pesan terakhir
+    // Hanya lakukan untuk Chat 1-on-1 (bukan Grup) agar struktur database konsisten
+    if (!isGrp) {
+        const theirRef = db.ref(`user_chats/${partnerId}/${currentUser}`);
+        theirRef.transaction((currentData) => {
+            if (currentData === null) {
+                // Jika belum ada riwayat chat, buat baru dengan unread = 1
+                return { lastMsg: msg, time: time, unread: 1 };
+            }
+            // Jika sudah ada, increment unread dengan aman
+            currentData.lastMsg = msg;
+            currentData.time = time;
+            currentData.unread = (currentData.unread || 0) + 1;
+            return currentData;
+        });
+    }
+}
+
+function showToast(msg) {
+    const toast = document.getElementById("toast");
+    if(toast) {
+        toast.innerText = msg;
+        toast.style.display = "block";
+        setTimeout(() => { toast.style.display = "none"; }, 2000);
+    }
+}
+
+function toggleEmojiPanel() {
+    const panel = document.getElementById("emojiPanel");
+    if(panel.style.display === 'flex') {
+        panel.style.display = 'none';
+    } else {
+        panel.style.display = 'flex';
+        renderEmojiGrid('Smileys');
+    }
+}
+
+function openAddFriend() { document.getElementById("addFriendModal").style.display = "flex"; }
+function closeAddFriend() { document.getElementById("addFriendModal").style.display = "none"; }
+function processAddFriend() {
+    const id = document.getElementById("friendInput").value.trim();
+    if(!id) return showToast("ID tidak boleh kosong!");
+    if(id === currentUser) return showToast("Tidak bisa chat dengan diri sendiri!");
+    
+    showToast("Mencari user...");
+    db.ref("users/" + id).once("value", s => {
+        if(s.exists()) {
+            const u = s.val();
+            db.ref(`user_chats/${currentUser}/${id}`).set({ lastMsg: "", time: Date.now() }).then(() => {
+                db.ref(`user_chats/${id}/${currentUser}`).set({ lastMsg: "", time: Date.now() });
+                closeAddFriend();
+                const photo = u.photo || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+                const name = u.username || id;
+                openChat(id, photo, name, false);
+            });
+        } else { 
+            showToast("ID tidak ditemukan!"); 
+        }
+    });
+}
+
+function openCreateGroup() { document.getElementById("createGroupModal").style.display = "flex"; }
+function closeCreateGroup() { document.getElementById("createGroupModal").style.display = "none"; }
+function processCreateGroup() {
+    const name = document.getElementById("groupNameInput").value.trim();
+    if(!name) return showToast("Nama grup kosong!");
+    const groupId = "GROUP_" + Date.now();
+    const groupData = { id: groupId, name: name, admin: currentUser, photo: "https://cdn-icons-png.flaticon.com/512/615/615075.png", createdAt: Date.now() };
+    
+    // FIX: SIMPAN GLOBALCONTACTS SEGERA AGAR SIDEBAR TIDAK KOSONG
+    globalContacts[groupId] = groupData; 
+
+    // 1. Set Group Data
+    db.ref("groups/" + groupId).set(groupData);
+    
+    // 2. Add Member
+    db.ref(`group_members/${groupId}/${currentUser}`).set(true);
+    
+    // 3. Update Sidebar
+    db.ref(`user_chats/${currentUser}/${groupId}`).set({ lastMsg: "Grup baru dibuat", time: Date.now() }).then(() => {
+        showToast("Grup berhasil dibuat!"); closeCreateGroup();
+        
+        // FIX: BUKA CHAT LANGSUNG AGAR TIDAK HILANG (TERUTAMA DI MOBILE)
+        openChat(groupId, "https://cdn-icons-png.flaticon.com/512/615/615075.png", name, true);
+    });
+}
+
+/* --- RECORDING --- */
+async function handleStart(e) {
+    if (e.cancelable) e.preventDefault();
+    startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+    isCancelled = false;
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = event => { if (event.data.size > 0) audioChunks.push(event.data); };
+        mediaRecorder.onstop = async () => {
+            stream.getTracks().forEach(t => t.stop());
+            if (!isCancelled && audioChunks.length > 0) {
+                vnBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                showToast("Mengirim VN...");
+                const formData = new FormData(); 
+                formData.append('file', vnBlob); 
+                formData.append('upload_preset', 'hanung'); 
+                formData.append('resource_type', 'video'); 
+                try {
+                    const response = await fetch('https://api.cloudinary.com/v1_1/dwu8dbfjp/video/upload', { method: 'POST', body: formData });
+                    const data = await response.json();
+                    if (data.secure_url) {
+                        db.ref("chats/" + currentChatId).push({ from: currentUser, text: "TYPE:VN:" + encryptData(data.secure_url), time: Date.now() });
+                        showToast("VN Terkirim!");
+                    } else showToast("Gagal upload VN.");
+                } catch (error) { showToast("Error koneksi server."); }
+            }
+            toggleRecordingUI(false);
+        };
+        mediaRecorder.start();
+        toggleRecordingUI(true);
+        startTimer();
+    } catch (err) { alert("Akses mic ditolak."); toggleRecordingUI(false); }
+}
+
+function toggleRecordingUI(isRecording) {
+    const normalInput = document.getElementById("normal-input");
+    const recordingUI = document.getElementById("recording-ui");
+    const sendButton = document.getElementById("sendButton");
+    const isMobile = window.innerWidth <= 768;
+
+    if (isRecording) {
+        if (isMobile) { if(normalInput) normalInput.style.display = 'none'; if(sendButton) sendButton.style.display = 'none'; } 
+        else { if(normalInput) { normalInput.style.opacity = '0'; normalInput.style.pointerEvents = 'none'; if(sendButton) sendButton.style.display = 'none'; } }
+        if(recordingUI) recordingUI.style.display = 'flex';
+        document.getElementById("micButton").style.color = '#ff5e5e';
+    } else {
+        clearInterval(recordInterval);
+        if(document.getElementById('record-timer')) document.getElementById('record-timer').innerText = "00:00";
+        if (recordingUI) recordingUI.style.display = 'none';
+        if (isMobile) { if(normalInput) normalInput.style.display = 'flex'; if(sendButton) sendButton.style.display = 'flex'; } 
+        else { if(normalInput) { normalInput.style.opacity = '1'; normalInput.style.pointerEvents = 'auto'; if(sendButton) sendButton.style.display = 'block'; } }
+        document.getElementById("micButton").style.color = '';
+    }
+}
+
+function startTimer() {
+    let sec = 0, min = 0; 
+    const timerDisplay = document.getElementById('record-timer');
+    if (!timerDisplay) return;
+    if (recordInterval) clearInterval(recordInterval);
+    recordInterval = setInterval(() => {
+        sec++; if (sec == 60) { min++; sec = 0; } 
+        timerDisplay.innerText = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`; 
+    }, 1000);
+}
+
+function handleMove(e) {
+    if (!mediaRecorder || mediaRecorder.state !== "recording") return;
+    let currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+    let diffX = startX - currentX;
+    const instruction = document.getElementById('slide-instruction');
+    if (diffX > 60) {
+        isCancelled = true;
+        if(instruction) { instruction.innerHTML = "<i class='fas fa-trash'></i> Batalkan"; instruction.style.color = "#ff5e5e"; }
+    } else {
+        isCancelled = false;
+        if(instruction) { instruction.innerHTML = "<i class='fas fa-chevron-left'></i> Geser Batal"; instruction.style.color = "#888"; }
+    }
+}
+
+function handleStop() {
+    if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); 
+    else toggleRecordingUI(false); 
+}
+const micBtn = document.getElementById("micButton");
+if(micBtn) {
+    micBtn.addEventListener('mousedown', handleStart);
+    micBtn.addEventListener('touchstart', handleStart, {passive: false});
+    micBtn.addEventListener('touchmove', handleMove, {passive: false});
+    micBtn.addEventListener('touchend', handleStop);
+}
+window.addEventListener('mouseup', () => { if (mediaRecorder && mediaRecorder.state === "recording") handleStop(); });
+
+const emojiPanel = document.getElementById("emojiPanel");
+const emojiButton = document.getElementById("emojiButton");
+if(emojiButton && emojiPanel) {
+    emojiButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        emojiPanel.style.display = emojiPanel.style.display === 'flex' ? 'none' : 'flex';
+        if(emojiPanel.style.display === 'flex') renderEmojiGrid('Smileys');
+    });
+}
+document.addEventListener('click', (e) => {
+    if (e.target.id !== 'emojiButton' && !e.target.closest('#emojiPanel') && emojiPanel.style.display === 'flex') {
+        emojiPanel.style.display = 'none';
+    }
+});
+
+/* --- CALL --- */
+function startJitsi(type) {
+    if (!currentChatId) { showToast("Buka chat dulu!"); return; }
+    const roomName = type === 'video' ? `Video_${Date.now()}` : `Audio_${Date.now()}`;
+    // Format: CALL_JITSI:Encrypted(type:roomName)
+    const payload = `${type}:${roomName}`;
+    pushMsg("CALL_JITSI:" + encryptData(payload));
+    // Join immediately for sender
+    joinVideoCall(roomName, type);
+}
+function pushMsg(text) {
+    const msg = { from: currentUser, text: text, time: Date.now(), seen: false };
+    db.ref("chats/" + currentChatId).push(msg);
+}
+function joinVideoCall(channelName, type) {
+    document.getElementById("videoCallModal").style.display = "block";
+    document.getElementById("jitsi-container").style.display = "block";
+    const myName = document.getElementById("myName").innerText || "User";
+    const options = {
+        roomName: channelName, width: "100%", height: "100%", parentNode: document.querySelector('#jitsi-container'),
+        configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: false, prejoinPageEnabled: false, disableDeepLinking: true },
+        interfaceConfigOverwrite: { SHOW_JITSI_WATERMARK: false, SHOW_WATERMARK_FOR_GUESTS: false, DEFAULT_BACKGROUND: '#000' },
+        userInfo: { displayName: myName }
+    };
+    jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
+    jitsiApi.addEventListeners({
+        readyToClose: function() { endVideoCall(); },
+        videoConferenceJoined: function() { console.log("Joined"); }
+    });
+}
+function endVideoCall() {
+    if (jitsiApi) { try { jitsiApi.dispose(); jitsiApi = null; } catch (e) {} }
+    document.getElementById("ringtoneSound").pause();
+    document.getElementById("jitsi-container").style.display = "none";
+    document.getElementById("videoCallModal").style.display = "none";
+    if (wakeLock) wakeLock.release();
+    if (document.fullscreenElement) document.exitFullscreen();
+    showToast("Panggilan berakhir");
+}
+
+function showCallOverlay(roomName, type, name, photoUrl) {
+    currentCallRoom = roomName; 
+    currentCallType = type;
+    
+    document.getElementById("call-overlay-name").innerText = name;
+    
+    // Gunakan URL icon yang sama untuk avatar overlay (agar konsisten)
+    const iconUrl = "https://cdn-icons-png.flaticon.com/512/733/733585.png";
+    document.getElementById("call-overlay-avatar").src = photoUrl || iconUrl;
+    document.getElementById("call-overlay").style.display = "flex";
+
+    // --- PERBAIKAN SUARA & NOTIFIKASI ---
+    const notifSound = document.getElementById("notificationSound");
+    if(notifSound) notifSound.pause();
+
+    playAudio("ringtoneSound");
+
+    // Munculkan Notifikasi untuk Panggilan
+    if (Notification.permission === "granted") {
+        new Notification(`Panggilan ${type === 'video' ? 'Video' : 'Suara'}`, {
+            body: `Sedang menelepon...`,
+            // GANTI ICON DI SINI SESUAI URL ANDA
+            icon: "https://cdn-icons-png.flaticon.com/512/733/733585.png",
+            badge: iconUrl,
+            vibrate: [500, 200, 500]
+        });
+    }
+}
+
+function hideCallOverlay() {
+    document.getElementById("call-overlay").style.display = "none";
+    document.getElementById("ringtoneSound").pause();
+}
+function acceptCall() { if (currentCallRoom && currentCallType) { hideCallOverlay(); joinVideoCall(currentCallRoom, currentCallType); } }
+function rejectCall() { hideCallOverlay(); showToast("Panggilan ditolak"); }
+
+/* --- IMAGE --- */
+function sendImage(input) {
+    if(!input.files[0]) return;
+    const reader = new FileReader();
+    reader.readAsDataURL(input.files[0]);
+    reader.onload = function(e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            const scale = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH; canvas.height = img.height * scale;
+            canvas.getContext('2d').drawImage(img,0, 0, canvas.width, canvas.height);
+            pendingImageBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            showImagePreview(pendingImageBase64);
+        };
+    };
+}
+function showImagePreview(base64String) {
+    document.getElementById("imgPreviewBox").src = base64String;
+    document.getElementById("imgPreviewModal").style.display = "flex";
+}
+function cancelSendImage() {
+    pendingImageBase64 = null;
+    document.getElementById("imgPreviewModal").style.display = "none";
+    document.getElementById("imgInput").value = "";
+    isViewOnceEnabled = false;
+    resetViewOnceUI();
+}
+function confirmSendImage() { if (!pendingImageBase64) return; send(); }
+function toggleViewOnce() {
+    isViewOnceEnabled = !isViewOnceEnabled;
+    resetViewOnceUI();
+}
+function resetViewOnceUI() {
+    const icon = document.getElementById("viewOnceIcon");
+    const label = document.getElementById("viewOnceLabel");
+    if(isViewOnceEnabled) { 
+        if(icon) { icon.className = "fas fa-eye-slash"; icon.style.color = "#ff5e5e"; } 
+        if(label) label.style.color = "#ff5e5e"; 
+    } else { 
+        if(icon) { icon.className = "far fa-eye"; icon.style.color = "#ccc"; } 
+        if(label) label.style.color = "#ccc"; 
+    }
+}
+
+function goToProfile() { window.location.href = isGroup ? `group-profile.html?id=${currentPartnerId}` : `user-profile.html?id=${currentPartnerId}`; }
+function logout() { if(confirm("Keluar?")) { localStorage.clear(); window.location.href="index.html"; } }
+function searchUser() {
+    const query = document.getElementById('userSearch').value.toLowerCase();
+    const list = document.getElementById("users");
+    const items = list.getElementsByClassName('user');
+    for(let i=0; i<items.length; i++) {
+        const name = items[i].querySelector('.user-info b').innerText.toLowerCase();
+        items[i].style.display = name.includes(query) ? 'flex' : 'none';
+    }
+}
+window.onload = initApp;
+</script>
+</body>
+</html>

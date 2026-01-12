@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Grup Info - GoChat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --card: rgba(255,255,255, 0.03);
+            --border: rgba(255,255,255, 0.08);
+            --accent: #d4a373;
+            --super-color: #FFD700;
+            --off-color: #0084FF;
+            --danger: #FF3B30;
+            --modal-overlay: rgba(0,0,0,0.9);
+        }
+
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: white; -webkit-tap-highlight-color: transparent; min-height: 100vh; padding-bottom: 20px;}
+        .container { width: 100%; max-width: 480px; margin: auto; padding: 20px; box-sizing: border-box; }
+        
+        /* Profile Header */
+        .profile-card { text-align: center; padding: 30px 20px; background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%); border-radius: 35px; border: 1px solid var(--border); margin-bottom: 25px; }
+        .img-container { position: relative; width: 110px; height: 110px; margin: 0 auto 15px; }
+        .group-img { width: 100%; height: 100%; border-radius: 35px; object-fit: cover; border: 2.5px solid var(--accent); }
+        .btn-edit-img { position: absolute; bottom: -2px; right: -2px; background: var(--accent); color: #000; width: 32px; height: 32px; border-radius: 10px; display: none; align-items: center; justify-content: center; font-size: 14px; border: 3px solid var(--bg); cursor: pointer; }
+
+        .group-name-box { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .group-name-box h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+        
+        .bio-section { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 20px; text-align: left; cursor: pointer; transition: background 0.2s; }
+        .bio-section:hover { background: rgba(255,255,255,0.05); }
+        .bio-label { font-size: 10px; font-weight: 800; color: var(--accent); text-transform: uppercase; margin-bottom: 5px; opacity: 0.8; }
+        .bio-text { font-size: 13px; color: #ccc; margin: 0; line-height: 1.5; }
+
+        /* Members List */
+        .section-title { font-size: 12px; font-weight: 800; color: #666; text-transform: uppercase; margin: 25px 0 15px 5px; letter-spacing: 1px; }
+        .member-item { display: flex; align-items: center; padding: 14px; background: var(--card); border-radius: 22px; margin-bottom: 10px; border: 1px solid var(--border); }
+        .member-item img { width: 48px; height: 48px; border-radius: 15px; object-fit: cover; margin-right: 15px; }
+        .member-info { flex: 1; min-width: 0; }
+        .m-name { font-weight: 700; font-size: 15px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .m-id { font-size: 11px; color: #555; font-weight: 600; }
+
+        /* BADGES & ACTION BUTTONS */
+        .badge-row { display: flex; align-items: center; gap: 8px; }
+        .badge { font-size: 10px; padding: 5px 10px; border-radius: 7px; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+        .bg-super { background: var(--super-color) !important; color: #000 !important; }
+        .bg-officer { background: var(--off-color) !important; color: #fff !important; }
+        
+        .btn-action { padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 800; cursor: pointer; text-transform: uppercase; border: 1px solid transparent; transition: all 0.2s; }
+        .btn-promote { background: rgba(0, 132, 255, 0.1); color: var(--off-color); border-color: rgba(0,132,255,0.3); }
+        .btn-promote:active { background: rgba(0, 132, 255, 0.2); }
+        .btn-demote { background: rgba(255, 59, 48, 0.1); color: var(--danger); border-color: rgba(255,59,48,0.3); }
+        .btn-demote:active { background: rgba(255, 59, 48, 0.2); }
+
+        /* Context Menu untuk Promote (HOLD) */
+        .member-menu {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            background: #1a1a1a;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            width: 180px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            padding: 5px 0;
+            transform: none; /* Posisi diatur via JS */
+        }
+        .menu-item { padding: 12px 15px; font-size: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .menu-item:hover { background: var(--card); color: var(--accent); }
+        .menu-item.danger { color: #ff5e5e; }
+
+        /* Admin Controls */
+        .admin-panel { background: rgba(212, 163, 115, 0.04); padding: 20px; border-radius: 25px; border: 1px dashed var(--accent); margin-top: 30px; display: none; }
+        
+        .invite-mode-switch { display: flex; gap: 10px; margin-bottom: 15px; background: #121212; padding: 5px; border-radius: 10px; }
+        .mode-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: transparent; color: #666; font-weight: 600; font-size: 12px; cursor: pointer; }
+        .mode-btn.active { background: var(--accent); color: #000; }
+
+        input { width: 100%; background: #121212; border: 1px solid var(--border); padding: 14px; border-radius: 12px; color: white; margin-bottom: 12px; box-sizing: border-box; outline: none; font-family: inherit; }
+        .btn-submit { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: #000; font-weight: 800; cursor: pointer; text-transform: uppercase; font-size: 12px; }
+
+        /* INVITE LIST UI */
+        .invite-contact-list { display: none; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; max-height: 250px; overflow-y: auto; }
+        .invite-search-box { display: flex; align-items: center; background: #121212; border: 1px solid var(--border); border-radius: 12px; padding: 10px 15px; margin-bottom: 10px; }
+        .invite-search-box i { color: var(--accent); margin-right: 10px; }
+        .invite-search-box input { background: transparent; border: none; padding: 0; margin: 0; width: 100%; }
+        
+        .invite-item { display: flex; align-items: center; padding: 10px; border-radius: 12px; margin-bottom: 8px; background: var(--card); border: 1px solid transparent; cursor: pointer; transition: 0.2s; }
+        .invite-item:hover { background: rgba(255,255,255,0.05); border-color: var(--border); }
+        .invite-item img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 12px; }
+        .invite-info { flex: 1; }
+        .invite-name { font-size: 14px; font-weight: 600; color: #fff; display: block; }
+        .invite-id { font-size: 10px; color: #666; }
+
+        /* TOAST */
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; padding: 12px 25px; border-radius: 50px; font-weight: 800; display: none; z-index: 10000; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- MODAL PREVIEW SUDAH DIHAPUS (TIDAK ADA DI SINI) -->
+
+<!-- MENU PROMOTE / DEMOTE (HOLD) -->
+<div id="memberMenu" class="member-menu">
+    <div class="menu-item" id="menuPromote" onclick="executePromote()">
+        <i class="fas fa-arrow-up" style="color:var(--off-color)"></i> Promote ke Officer
+    </div>
+    <div class="menu-item danger" id="menuDemote" onclick="executeDemote()">
+        <i class="fas fa-arrow-down" style="color:var(--danger)"></i> Turunkan Jabatan
+    </div>
+</div>
+
+<div class="container">
+    <div class="header" style="margin-bottom:25px;">
+        <i class="fas fa-arrow-left" onclick="history.back()" style="cursor:pointer; font-size:18px; color:var(--accent);"></i>
+    </div>
+
+    <div class="profile-card">
+        <div class="img-container">
+            <img id="gPhoto" src="https://cdn-icons-png.flaticon.com/512/615/615075.png" class="group-img">
+            <label for="fileInput" id="camIcon" class="btn-edit-img"><i class="fas fa-camera"></i></label>
+            <input type="file" id="fileInput" style="display:none" onchange="updateGroupPhoto(this)">
+        </div>
+        
+        <div class="group-name-box">
+            <h2 id="gName">Memuat...</h2>
+            <i class="fas fa-pencil-alt" id="editNameBtn" style="display:none; color:var(--accent); cursor:pointer; font-size:14px;" onclick="changeGroupName()"></i>
+        </div>
+
+        <div class="bio-section" onclick="changeGroupBio()">
+            <div class="bio-label">Tentang Grup</div>
+            <p id="gBio" class="bio-text">...</p>
+        </div>
+    </div>
+
+    <div class="section-title">Anggota Grup</div>
+    <div id="memberListContainer"></div>
+
+    <div id="adminPanel" class="admin-panel">
+        <div class="bio-label" style="margin-bottom:10px; font-size:14px;">Manajemen Anggota</div>
+        
+        <div class="invite-mode-switch">
+            <button class="mode-btn active" id="btnModeManual" onclick="switchInviteMode('manual')">Input ID</button>
+            <button class="mode-btn" id="btnModeContact" onclick="switchInviteMode('contact')">Pilih Kontak</button>
+        </div>
+
+        <!-- MODE 1: MANUAL INPUT -->
+        <div id="manualInviteContainer">
+            <input type="text" id="newUserId" placeholder="Masukkan ID Pengguna...">
+            <button class="btn-submit" onclick="inviteUserManual()">Undang Sekarang</button>
+        </div>
+
+        <!-- MODE 2: SELECT CONTACTS -->
+        <div id="contactInviteContainer" style="display: none;">
+            <div class="invite-search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="inviteSearch" placeholder="Cari kontak..." oninput="filterInviteContacts()">
+            </div>
+            <div id="inviteList" class="invite-contact-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCEamepceiYZtcqlcRnRmFHe0smkGfu_A4",
+        authDomain: "gochat-35172.firebaseapp.com",
+        databaseURL: "https://gochat-35172-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "gochat-35172",
+        storageBucket: "gochat-35172.appspot.com",
+        appId: "1:206571646434:web:4036d43695a00474499dbb"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const myId = localStorage.getItem("gochat_user");
+    const gId = new URLSearchParams(window.location.search).get('id');
+
+    let gData = null;
+    let myRole = "member"; // Default member
+    let inviteMode = "manual"; // Default manual input
+    let selectedContactForInvite = null;
+    let globalContactList = {}; 
+    let selectedMemberId = null; // Untuk menu promote
+    let pressTimer = 0; // Timer untuk hold
+
+    function init() {
+        if (!gId || !myId) {
+            console.error("ID Grup atau ID User tidak ditemukan");
+            return;
+        }
+
+        // 1. Load Group Info Terlebih Dahulu
+        const groupRef = db.ref(`groups/${gId}`);
+        groupRef.on("value", snap => {
+            gData = snap.val();
+            if (!gData) return;
+            
+            // 2. Cek Jabatan (Role)
+            // Logic: Jika ID admin grup == ID saya, maka saya Super User.
+            // Jika tidak, cek apakah saya Officer atau Member biasa.
+            myRole = (gData.admin === myId) ? "superuser" : "member";
+            
+            // 3. Update UI Basic (Nama, Bio, Foto)
+            updateUI();
+            
+            // 4. HANYA load member jika data grup ada
+            loadMembers();
+        });
+
+        // 5. Listener Realtime Status Saya (Untuk update role admin/officer)
+        db.ref(`group_members/${gId}/${myId}`).on("value", rSnap => {
+            const roleVal = rSnap.val();
+            
+            // Tentukan role final
+            if (gData && gData.admin === myId) {
+                myRole = "superuser";
+            } else if (roleVal === "officer") {
+                myRole = "officer";
+            } else {
+                myRole = "member";
+            }
+
+            // 6. Update UI Panel Admin berdasarkan Role
+            if (myRole === 'superuser' || myRole === 'officer') {
+                document.getElementById("adminPanel").style.display = "block";
+                document.getElementById("camIcon").style.display = "flex";
+                document.getElementById("editNameBtn").style.display = "block";
+                
+                // Load data kontak untuk kebutuhan invite (HANYA DATA, BUKAN UI)
+                loadUserChatsForInvite();
+            } else {
+                // Pastikan panel admin HIDDEN (mencegah popup muncul di awal)
+                document.getElementById("adminPanel").style.display = "none";
+                document.getElementById("camIcon").style.display = "none";
+                document.getElementById("editNameBtn").style.display = "none";
+            }
+            
+            // Refresh member list
+            loadMembers();
+        });
+    }
+
+    function updateUI() {
+        document.getElementById("gName").innerText = gData.name;
+        document.getElementById("gBio").innerText = gData.bio || "Klik untuk menambah deskripsi grup...";
+        document.getElementById("gPhoto").src = gData.photo || "https://cdn-icons-png.flaticon.com/512/615/615075.png";
+        
+        // PERBAIKAN: Matikan panel admin setiap kali updateUI dipanggil (agar tidak muncul di awal)
+        document.getElementById("adminPanel").style.display = "none";
+    }
+
+    function loadMembers() {
+        if (!gData) return; // Jangan render jika data grup belum ada
+
+        const container = document.getElementById("memberListContainer");
+        db.ref(`group_members/${gId}`).on("value", snap => {
+            container.innerHTML = "";
+            const data = snap.val();
+
+            if (!data) {
+                container.innerHTML = `<div style="text-align:center; color:#666; font-size:12px; padding:20px;">Belum ada anggota.</div>`;
+                return;
+            }
+
+            snap.forEach(m => {
+                const uid = m.key;
+                const role = m.val();
+                renderMember(uid, role, container);
+            });
+        });
+    }
+
+    function renderMember(uid, role, container) {
+        db.ref(`users/${uid}`).once("value", uSnap => {
+            const u = uSnap.val();
+            const isSU = (uid === gData.admin);
+            const isOff = (role === "officer");
+            
+            const item = document.createElement("div");
+            item.className = "member-item";
+            
+            // Event Listeners untuk Tahan (Hold) / Klik Kanan
+            // Hanya Super User yang bisa memicu menu
+            if (myRole === 'superuser' && !isSU && !isOff) {
+                item.ontouchstart = (e) => {
+                    pressTimer = setTimeout(() => {
+                        showMemberMenu(uid, "member", e);
+                    }, 500); 
+                };
+                item.ontouchend = () => clearTimeout(pressTimer);
+                item.ontouchmove = () => clearTimeout(pressTimer);
+                
+                item.onmousedown = () => {
+                    pressTimer = setTimeout(() => {
+                        showMemberMenu(uid, "member", null); 
+                    }, 500);
+                };
+                item.onmouseup = () => clearTimeout(pressTimer);
+                
+                item.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    showMemberMenu(uid, "member", e);
+                };
+            } else if (myRole === 'superuser' && isOff) {
+                 // Logic tampil menu untuk Officer (Demote)
+                item.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    showMemberMenu(uid, "officer", e);
+                };
+            }
+
+            const itemHTML = `
+                <img src="${u?.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+                <div class="member-info">
+                    <span class="m-name">${u?.username || uid}</span>
+                    <span class="m-id">@${uid}</span>
+                </div>
+                <div class="badge-row">
+                    ${isSU ? '<span class="badge bg-super">SUPER USER</span>' : ''}
+                    ${isOff ? '<span class="badge bg-officer">OFFICER</span>' : ''}
+                </div>`;
+            
+            item.innerHTML = itemHTML;
+            container.appendChild(item);
+        });
+    }
+
+    // --- MENU PROMOTE (HOLD) ---
+
+    function showMemberMenu(uid, currentRole, event) {
+        selectedMemberId = uid;
+        
+        const promoteBtn = document.getElementById("menuPromote");
+        const demoteBtn = document.getElementById("menuDemote");
+
+        // Jika Member biasa -> Tampilkan Promote, Sembunyikan Demote
+        // Jika Officer -> Sembunyikan Promote, Tampilkan Demote
+        if (currentRole === "member") {
+            promoteBtn.style.display = "flex";
+            demoteBtn.style.display = "none";
+        } else {
+            promoteBtn.style.display = "none";
+            demoteBtn.style.display = "flex";
+        }
+
+        // Posisi Menu
+        const menu = document.getElementById("memberMenu");
+        const isMobile = window.innerWidth <= 768;
+        
+        if (event && event.target) {
+            const rect = event.target.closest('.member-item').getBoundingClientRect();
+            let top, left;
+
+            if (isMobile) {
+                top = rect.top + (rect.height / 2) - (menu.offsetHeight / 2);
+                left = rect.left - menu.offsetWidth - 10; // Taruh di kiri avatar
+                if (left < 10) left = rect.right + 10; // Kalau mentok kiri, taruh kanan
+                if (top < 10) top = 10;
+                if (top + menu.offsetHeight > window.innerHeight) top = window.innerHeight - menu.offsetHeight - 10;
+            } else {
+                top = rect.top;
+                left = rect.right + 10;
+            }
+
+            menu.style.top = top + "px";
+            menu.style.left = left + "px";
+            menu.style.transform = "none";
+            menu.style.display = "block";
+        } else {
+            menu.style.top = "50%";
+            menu.style.left = "50%";
+            menu.style.transform = "translate(-50%, -50%)";
+            menu.style.display = "block";
+        }
+    }
+
+    function closeMemberMenu() {
+        document.getElementById("memberMenu").style.display = "none";
+        selectedMemberId = null;
+    }
+
+    function executePromote() {
+        if (!selectedMemberId) return;
+        db.ref(`group_members/${gId}/${selectedMemberId}`).set("officer").then(() => {
+            showToast("Anggota dipromote menjadi Officer");
+            closeMemberMenu();
+        });
+    }
+
+    function executeDemote() {
+        if (!selectedMemberId) return;
+        db.ref(`group_members/${gId}/${selectedMemberId}`).set(true).then(() => {
+            showToast("Jabatan diturunkan menjadi Member");
+            closeMemberMenu();
+        });
+    }
+
+    // --- INVITE LOGIC (TANPA POP UP CUSTOM) ---
+
+    function switchInviteMode(mode) {
+        inviteMode = mode;
+        document.getElementById("btnModeManual").classList.toggle("active", mode === "manual");
+        document.getElementById("btnModeContact").classList.toggle("active", mode === "contact");
+        
+        if (mode === 'manual') {
+            document.getElementById("manualInviteContainer").style.display = "block";
+            document.getElementById("contactInviteContainer").style.display = "none";
+        } else {
+            document.getElementById("manualInviteContainer").style.display = "none";
+            document.getElementById("contactInviteContainer").style.display = "block";
+            filterInviteContacts(); 
+        }
+    }
+
+    function inviteUserManual() {
+        const id = document.getElementById("newUserId").value.trim();
+        if(!id) return showToast("ID tidak boleh kosong!");
+        if(id === myId) return showToast("Tidak bisa mengundang diri sendiri!");
+        
+        // Check if user exists
+        db.ref("users/" + id).once("value", s => {
+            if(s.exists()){
+                // Langsung proses tanpa modal custom
+                processAddMember(id);
+            } else {
+                showToast("ID tidak ditemukan!");
+            }
+        });
+    }
+
+    // --- KONTAK LIST LOGIC ---
+
+    function loadUserChatsForInvite() {
+        // Jangan load jika sudah ada data
+        if (Object.keys(globalContactList).length > 0) return;
+
+        db.ref(`user_chats/${myId}`).once("value", snap => {
+            const data = snap.val();
+            if(!data) return;
+
+            const ids = Object.keys(data);
+            const fetchPromises = [];
+
+            ids.forEach(id => {
+                if (id.startsWith("GROUP_")) return; 
+                fetchPromises.push(
+                    db.ref("users/" + id).once("value")
+                        .then(uSnap => {
+                            const u = uSnap.val();
+                            if (u) globalContactList[id] = u;
+                        })
+                );
+            });
+
+            // Data selesai dimuat ke 'globalContactList'
+            // JANGAN render list disini.
+        });
+    }
+
+    function filterInviteContacts() {
+        const listEl = document.getElementById("inviteList");
+        const query = document.getElementById("inviteSearch").value.toLowerCase();
+        listEl.innerHTML = "";
+
+        const ids = Object.keys(globalContactList);
+        if (ids.length === 0) {
+            listEl.innerHTML = `<div style="text-align:center; color:#666; font-size:12px; padding:20px;">Tidak ada kontak tersedia.</div>`;
+            return;
+        }
+
+        ids.forEach(id => {
+            const u = globalContactList[id];
+            const name = (u.username || "").toLowerCase();
+            
+            if (name.includes(query)) {
+                const el = document.createElement("div");
+                el.className = "invite-item";
+                
+                // PERUBAHAN: Klik langsung proses, tanpa buka custom modal
+                el.onclick = () => {
+                    // Menggunakan confirm() bawaan browser untuk keamanan
+                    if(confirm(`Tambahkan ${u.username} ke grup ini?`)) {
+                        processAddMember(id);
+                    }
+                };
+                
+                el.innerHTML = `
+                    <img src="${u.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+                    <div class="invite-info">
+                        <span class="invite-name">${u.username}</span>
+                        <span class="invite-id">@${id}</span>
+                    </div>
+                `;
+                listEl.appendChild(el);
+            }
+        });
+    }
+
+    // --- PREVIEW & CONFIRMATION (DIHAPUS KARENA TIDAK DIPAKAI LAGI) ---
+    // Fungsi ini dihapus karena kita langsung memanggil processAddMember
+
+    function processAddMember(uid) {
+        // 1. Tambah ke list member grup
+        db.ref(`group_members/${gId}/${uid}`).set(true).then(() => {
+            
+            // 2. Update Sidebar Penerima (Jika belum ada)
+            db.ref(`user_chats/${uid}/${gId}`).once("value", s => {
+                if(!s.exists()){
+                    db.ref(`user_chats/${uid}/${gId}`).set({
+                        lastMsg: "Grup Baru",
+                        time: Date.now()
+                    });
+                }
+            });
+
+            // 3. Kirim Pesan Sistem ke Grup
+            const systemMsg = {
+                from: uid,
+                text: "Anggota baru bergabung!", 
+                time: Date.now(),
+                seen: false,
+                isSystem: true
+            };
+            db.ref(`chats/${gId}`).push(systemMsg);
+
+            showToast("Anggota berhasil ditambahkan!");
+            document.getElementById("newUserId").value = "";
+            
+            // Refresh UI
+            loadMembers(); 
+            if(inviteMode === 'contact') filterInviteContacts();
+        });
+    }
+
+    // --- ACTIONS LAIN ---
+
+    function changeGroupName() {
+        if (myRole !== 'superuser') return;
+        const n = prompt("Ganti Nama Grup:", gData.name);
+        if(n && n.trim() !== "") db.ref(`groups/${gId}`).update({ name: n.trim() });
+    }
+
+    function changeGroupBio() {
+        // Superuser dan Officer bisa ganti bio?
+        if (myRole === 'member') return;
+        const b = prompt("Ganti Deskripsi:", gData.bio || "");
+        if(b !== null) db.ref(`groups/${gId}`).update({ bio: b.trim() });
+    }
+
+    function updateGroupPhoto(input) {
+        if (myRole === 'member') return;
+        const file = input.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = e => db.ref(`groups/${gId}`).update({ photo: e.target.result });
+        reader.readAsDataURL(file);
+    }
+
+    function showToast(m) {
+        const t = document.getElementById("toast");
+        t.innerText = m; 
+        t.style.display = "block";
+        setTimeout(() => t.style.display="none", 2500);
+    }
+
+    // Global click untuk close menu jika klik di luar
+    window.addEventListener('click', (e) => {
+        const menu = document.getElementById("memberMenu");
+        if (menu.style.display === 'block') {
+            if (!e.target.closest('#memberMenu') && !e.target.closest('.member-item')) {
+                closeMemberMenu();
+            }
+        }
+    });
+
+    init();
+</script>
+</body>
+</html>
