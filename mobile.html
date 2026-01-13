@@ -473,8 +473,8 @@
     
     .shared-card-info {
         display: flex;
-        flex-direction: column,
-        gap: 4px,
+        flex-direction: column;
+        gap: 4px;
         width: 100%;
         justify-content: center;
         align-items: center;
@@ -482,7 +482,7 @@
     
     .shared-card-name {
         font-size: 16px;
-        font-weight: bold,
+        font-weight: bold;
         color: #fff;
         white-space: nowrap;
         overflow: hidden;
@@ -721,7 +721,7 @@
     }
     .btn-action:active { transform: scale(0.9); color: white; }
 
-    /* EMOJI PANEL */
+    /* EMOJI PANEL - FIXED OVERFLOW & SYNTAX */
     #emojiPanel {
         display: none; 
         position: absolute; 
@@ -732,11 +732,12 @@
         border: 1px solid var(--glass-border); 
         border-radius: 20px;
         padding: 0; 
-        max-height: 350px; 
+        /* FIX: Hapus max-height statis dan overflow hidden agar tidak tertutup background */
+        max-height: 60vh; 
         z-index: 1000; 
         box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
         flex-direction: column;
-        overflow: hidden;
+        overflow: visible;
         pointer-events: auto;
     }
 
@@ -850,7 +851,7 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
-    /* MODALS & SHEETS */
+    /* MODALS & SHEETS - FIXED SYNTAX */
     .modal {
         display: none; 
         position: fixed; 
@@ -1074,11 +1075,11 @@
     .view-once-container { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; cursor: pointer; }
     .view-once-label { font-size: 12px; color: #ccc; }
 
-    /* FORWARD/SHARE MODAL */
+    /* FORWARD/SHARE MODAL - FIXED SYNTAX */
     .generic-modal {
         display: none;
         position: fixed;
-        inset: 0, 
+        inset: 0; 
         background: rgba(0,0,0,0.95);
         z-index: 4000;
         flex-direction: column;
@@ -1095,12 +1096,12 @@
         padding: 10px;
     }
     .modal-item {
-        display: flex,
-        align-items: center,
-        gap: 15px,
-        padding: 12px,
-        border-bottom: 1px solid #222,
-        cursor: pointer
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 12px;
+        border-bottom: 1px solid #222;
+        cursor: pointer;
     }
     .modal-item:active { background: #222; }
     .item-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
